@@ -241,6 +241,15 @@ function simulateImpact(p) {
     else st.crush = (st.crush || 0) + maxCrushHere;
     if (destroyed) st.destroyed = true;
     if (objDamaged) st.damaged = objDamaged;
+    if (p.spec.wreckE) { // cumulative wear of the object itself (assumption: share of non-returned energy)
+      const keOut = 0.5 * me * res.vOut * res.vOut;
+      const work = Eabs + 0.4 * Math.max(0, res.Ein - keOut - Eabs);
+      st.wear = Math.min(1, (st.wear || 0) + work / p.spec.wreckE);
+      res.wear = st.wear; res.wearAdd = work / p.spec.wreckE;
+      const stg = (p.spec.stages || []).filter(s => st.wear >= s[0]).pop();
+      if (stg) { st.damaged = stg[1]; res.objDamaged = stg[1]; }
+      if (st.wear >= 1) st.wrecked = true;
+    }
     st.hits = (st.hits || 0) + 1;
   }
   return res;

@@ -187,7 +187,8 @@ details summary{cursor:pointer;font-family:var(--f-display);font-weight:600;font
           <li>ตัวคูณลดความเค้นของการชนที่สั้นกว่า 1 มิลลิวินาที ปรับให้เทมเปอร์ 4–5 มม. ผ่านการทดสอบลูกเหล็ก 227 กรัม จาก 2 ม. ตาม ECE R43</li>
           <li>การโตของรอยร้าวเมื่อตีจุดเดิมซ้ำ (บิ่นและล้าจากการสัมผัส) ใช้ 25% ของความลึกที่ครั้งนั้นสร้างได้ เป็นค่าสมมติ</li>
           <li>มวลที่มีผล ความแข็งโครงสร้าง และกำลังยุบของวัตถุแต่ละชิ้นเป็นค่าประมาณทางวิศวกรรม ไม่ได้วัดจากของจริง</li>
-          <li>มือถือ: น้ำหนัก ขนาด และวัสดุเฟรมมาจากหน้าสเปกของผู้ผลิต (Apple, Samsung) ส่วนรัศมีมุมเครื่องและแรงที่ทำให้กระจกมือถือร้าวเป็นค่าประมาณ</li>
+          <li>มือถือ: น้ำหนัก ขนาด และวัสดุเฟรมมาจากหน้าสเปกของผู้ผลิต (Apple, Samsung) ส่วนรัศมีมุมเครื่องเป็นค่าประมาณ</li>
+          <li>ความเสียหายสะสมของมือถือ: ทุกครั้งที่ชน มือถือรับงานจากการยุบของเฟรมบวก 40% ของพลังงานที่ไม่ได้เด้งกลับ ครบราว 26–32 J ถือว่าพังยับ เฟรมผนังบางจึงยุบที่แรงดันต่ำกว่าโลหะตัน (อะลูมิเนียม ~300 MPa, ไทเทเนียม ~500 MPa) ทั้งหมดนี้เป็นค่าสมมติ</li>
           <li>จอ LED คือจอ LCD ที่ใช้ไฟ LED ส่องหลัง ความต่างในโมเดลจึงอยู่ที่น้ำหนัก ความบาง และวัสดุขาตั้ง ไม่ใช่ชนิดของแผงจอ</li>
           <li>คนออกแรงลากได้สูงสุด 450 N ใส่พลังงานให้วัตถุได้ไม่เกิน 150 J และขยับมือได้ไม่เกิน 14 m/s</li>
         </ul>
@@ -270,7 +271,7 @@ function renderFaces(){
   const st=cur.st; const bits=[];
   if(st.crush) bits.push(`มุมยุบสะสม ${(st.crush*1000).toFixed(1)} มม.`);
   if(st.casterBroken) bits.push('ล้อหักแล้ว ครั้งต่อไปฐานอะลูมิเนียมจะชนแทน');
-  if(st.damaged) bits.push('สภาพ: '+st.damaged);
+  if(st.damaged) bits.push('สภาพ: '+st.damaged+(st.wear!=null?` (${Math.round(st.wear*100)}%)`:''));
   const fc=cur.def.faces[cur.fi]; if(cur.def.shape==='phone'||cur.def.shape==='fold') bits.push(`${Math.round(cur.def.mass*1000)} g · ${fc.mat} · ค่าน้ำหนักและวัสดุจากสเปกผู้ผลิต`);
   $('objhint').textContent=bits.length?bits.join(' · '):'กดตรงไหนในฉากก็ได้ วัตถุจะย้ายมาที่เคอร์เซอร์ แล้วลากไปชนกระจก ยิ่งลากเร็วยิ่งชนแรง แต่ไม่เกินขีดของคน';
 }
@@ -454,6 +455,7 @@ function showResult(o,face,spec,r,pNext){
     ['เทียบค่ามาตรฐาน',fmt(r.sigMax/1e6/charS*100,0)+'% ของ '+charS+' MPa'],
     ['พลังงานที่วัตถุดูดซับ',fmt(r.Eabs,0)+' J'],
     ['สภาพวัตถุ',objState],
+    ...(r.wear!=null?[['ความเสียหายสะสมของวัตถุ',fmt(r.wear*100,0)+'% (+'+fmt(r.wearAdd*100,0)+'% ครั้งนี้)']]:[]),
   ];
   if(!r.glassBroken&&pNext&&pNext.p!=null) items.push(['โอกาสแตกถ้าตีซ้ำแบบเดิม',fmt(pNext.p*100,0)+'%']);
   if($('reveal').checked){
@@ -490,10 +492,15 @@ function drawObj(c,o){
   const crush=(o.st.crush||0)*S;
   const shp=o.def.shape, px=v=>Math.max(v*S,3);
   if(shp==='phone'||shp==='fold'){
-    const t=px(p.h); c.fillStyle=col; rr(c,0,-t,W,t,Math.min(t/2,4)); c.fill(); c.stroke();
-    c.fillStyle=css('--ink'); c.globalAlpha=0.6; c.fillRect(W*0.06,-t*0.75,W*0.88,Math.max(1,t*0.25)); c.globalAlpha=1;
-    if(shp==='fold'){c.fillStyle=css('--muted');c.fillRect(W-Math.max(3,0.004*S),-t,Math.max(3,0.004*S),t);}
-    if(o.st.damaged){c.strokeStyle=css('--crit');c.beginPath();c.moveTo(W*0.3,-t);c.lineTo(W*0.45,0);c.lineTo(W*0.6,-t);c.stroke();}
+    const t=px(p.h), wear=o.st.wear||0, bend=wear*0.18; // body bends and crumples as wear builds up
+    c.save(); c.translate(W/2,-t/2);
+    const seg=6, pts=[]; for(let i=0;i<=seg;i++){const s=i/seg-0.5; pts.push([s*W, -Math.abs(s)*0+bend*W*(0.25-s*s)]);}
+    c.fillStyle=col; c.beginPath(); pts.forEach(([x,y],i)=>i?c.lineTo(x,y-t/2):c.moveTo(x,y-t/2));
+    for(let i=seg;i>=0;i--){const [x,y]=pts[i]; c.lineTo(x,y+t/2);} c.closePath(); c.fill(); c.stroke();
+    if(shp==='fold'){c.fillStyle=css('--muted');c.fillRect(W/2-Math.max(3,0.004*S),-t/2,Math.max(3,0.004*S),t);}
+    if(wear>0||o.st.damaged){const n=1+Math.floor(wear*8); c.strokeStyle=css('--crit'); c.lineWidth=1;
+      for(let i=0;i<n;i++){const x=(-0.4+0.8*((i*0.618)%1))*W; c.beginPath(); c.moveTo(x,-t/2+bend*W*0.2); c.lineTo(x+W*0.05,t/2+bend*W*0.2); c.stroke();}}
+    c.restore();
     c.restore(); markStrike(c,o,p); return;
   }
   if(shp==='monitor'){

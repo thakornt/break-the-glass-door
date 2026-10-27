@@ -61,25 +61,25 @@ const OBJECTS = [
   // Phones: weight, size and frame material from manufacturer spec pages (Oct 2026)
   { id: 'ip18pro', name: 'iPhone 18 Pro', shape: 'phone', mass: 0.211, feff: 0.9, w: 0.150, h: 0.00875, color: '#9aa3ab',
     faces: [
-      { id: 'ip18pro-corner', label: 'มุมเครื่อง (เฟรมอะลูมิเนียม)', kind: 'hertz', Eo: 70e9, nuo: 0.33, R: 0.004, area: 'sphere', pc: 0.75e9, hard: true, damageF: 2500, damageLabel: 'กระจกหน้า/หลังร้าว', mat: 'อะลูมิเนียม' }
+      { id: 'ip18pro-corner', label: 'มุมเครื่อง (เฟรมอะลูมิเนียม)', kind: 'hertz', Eo: 70e9, nuo: 0.33, R: 0.004, area: 'sphere', pc: 0.3e9, hard: true, wreckE: 30, stages: [[0.0001, 'กระจกหลังร้าว'], [0.25, 'มุมเฟรมบุบ จอร้าวลาม'], [0.5, 'เฟรมยุบ จอแตกละเอียด'], [0.75, 'ตัวเครื่องงอ จอดับ'], [1, 'พังยับ ใช้งานไม่ได้']], mat: 'อะลูมิเนียม' }
     ] },
   { id: 'ip18pm', name: 'iPhone 18 Pro Max', shape: 'phone', mass: 0.249, feff: 0.9, w: 0.1634, h: 0.00875, color: '#9aa3ab',
     faces: [
-      { id: 'ip18pm-corner', label: 'มุมเครื่อง (เฟรมอะลูมิเนียม)', kind: 'hertz', Eo: 70e9, nuo: 0.33, R: 0.004, area: 'sphere', pc: 0.75e9, hard: true, damageF: 2500, damageLabel: 'กระจกหน้า/หลังร้าว', mat: 'อะลูมิเนียม' }
+      { id: 'ip18pm-corner', label: 'มุมเครื่อง (เฟรมอะลูมิเนียม)', kind: 'hertz', Eo: 70e9, nuo: 0.33, R: 0.004, area: 'sphere', pc: 0.3e9, hard: true, wreckE: 30, stages: [[0.0001, 'กระจกหลังร้าว'], [0.25, 'มุมเฟรมบุบ จอร้าวลาม'], [0.5, 'เฟรมยุบ จอแตกละเอียด'], [0.75, 'ตัวเครื่องงอ จอดับ'], [1, 'พังยับ ใช้งานไม่ได้']], mat: 'อะลูมิเนียม' }
     ] },
   { id: 's26u', name: 'Galaxy S26 Ultra', shape: 'phone', mass: 0.214, feff: 0.9, w: 0.1636, h: 0.0079, color: '#4a4f57',
     faces: [
-      { id: 's26u-corner', label: 'มุมเครื่อง (Armor Aluminum)', kind: 'hertz', Eo: 70e9, nuo: 0.33, R: 0.003, area: 'sphere', pc: 0.75e9, hard: true, damageF: 2500, damageLabel: 'กระจกหน้า/หลังร้าว', mat: 'อะลูมิเนียม' }
+      { id: 's26u-corner', label: 'มุมเครื่อง (Armor Aluminum)', kind: 'hertz', Eo: 70e9, nuo: 0.33, R: 0.003, area: 'sphere', pc: 0.3e9, hard: true, wreckE: 30, stages: [[0.0001, 'กระจกหลังร้าว'], [0.25, 'มุมเฟรมบุบ จอร้าวลาม'], [0.5, 'เฟรมยุบ จอแตกละเอียด'], [0.75, 'ตัวเครื่องงอ จอดับ'], [1, 'พังยับ ใช้งานไม่ได้']], mat: 'อะลูมิเนียม' }
     ] },
   { id: 'fold8', name: 'Galaxy Z Fold8 (พับอยู่)', shape: 'fold', mass: 0.201, feff: 0.85, w: 0.1239, h: 0.0097, color: '#3b4048',
     faces: [
-      { id: 'fold8-corner', label: 'มุมเครื่อง (Armor Aluminum)', kind: 'hertz', Eo: 70e9, nuo: 0.33, R: 0.003, area: 'sphere', pc: 0.75e9, hard: true, damageF: 2000, damageLabel: 'จอนอก/บานพับเสียหาย', mat: 'อะลูมิเนียม' },
-      { id: 'fold8-hinge', label: 'สันบานพับ', fy: 0.5, kind: 'hertz', Eo: 90e9, nuo: 0.32, R: 0.0048, area: 'sphere', pc: 0.9e9, hard: true, damageF: 2500, damageLabel: 'บานพับเสียหาย', mat: 'อะลูมิเนียม/เหล็ก' }
+      { id: 'fold8-corner', label: 'มุมเครื่อง (Armor Aluminum)', kind: 'hertz', Eo: 70e9, nuo: 0.33, R: 0.003, area: 'sphere', pc: 0.3e9, hard: true, wreckE: 26, stages: [[0.0001, 'จอนอกร้าว'], [0.25, 'มุมเฟรมบุบ บานพับฝืด'], [0.5, 'บานพับคลอน จอในย่น'], [0.75, 'เครื่องบิด จอดับ'], [1, 'พังยับ ใช้งานไม่ได้']], mat: 'อะลูมิเนียม' },
+      { id: 'fold8-hinge', label: 'สันบานพับ', fy: 0.5, kind: 'hertz', Eo: 90e9, nuo: 0.32, R: 0.0048, area: 'sphere', pc: 0.4e9, hard: true, wreckE: 26, stages: [[0.0001, 'จอนอกร้าว'], [0.25, 'มุมเฟรมบุบ บานพับฝืด'], [0.5, 'บานพับคลอน จอในย่น'], [0.75, 'เครื่องบิด จอดับ'], [1, 'พังยับ ใช้งานไม่ได้']], mat: 'อะลูมิเนียม/เหล็ก' }
     ] },
   { id: 'ipduo', name: 'iPhone Duo (พับอยู่)', shape: 'fold', mass: 0.254, feff: 0.85, w: 0.1178, h: 0.0113, color: '#c9c2b6',
     faces: [
-      { id: 'ipduo-corner', label: 'มุมเครื่อง (ไทเทเนียม เกรด 5)', kind: 'hertz', Eo: 114e9, nuo: 0.34, R: 0.004, area: 'sphere', pc: 1.3e9, hard: true, damageF: 2500, damageLabel: 'จอนอก/ฝาหลังร้าว', mat: 'ไทเทเนียม' },
-      { id: 'ipduo-hinge', label: 'สันบานพับ (ไทเทเนียม)', fy: 0.5, kind: 'hertz', Eo: 114e9, nuo: 0.34, R: 0.0056, area: 'sphere', pc: 1.3e9, hard: true, damageF: 3000, damageLabel: 'บานพับเสียหาย', mat: 'ไทเทเนียม' }
+      { id: 'ipduo-corner', label: 'มุมเครื่อง (ไทเทเนียม เกรด 5)', kind: 'hertz', Eo: 114e9, nuo: 0.34, R: 0.004, area: 'sphere', pc: 0.5e9, hard: true, wreckE: 30, stages: [[0.0001, 'จอนอกร้าว'], [0.25, 'มุมเฟรมบุบ บานพับฝืด'], [0.5, 'บานพับคลอน จอในย่น'], [0.75, 'เครื่องบิด จอดับ'], [1, 'พังยับ ใช้งานไม่ได้']], mat: 'ไทเทเนียม' },
+      { id: 'ipduo-hinge', label: 'สันบานพับ (ไทเทเนียม)', fy: 0.5, kind: 'hertz', Eo: 114e9, nuo: 0.34, R: 0.0056, area: 'sphere', pc: 0.6e9, hard: true, wreckE: 32, stages: [[0.0001, 'จอนอกร้าว'], [0.25, 'มุมเฟรมบุบ บานพับฝืด'], [0.5, 'บานพับคลอน จอในย่น'], [0.75, 'เครื่องบิด จอดับ'], [1, 'พังยับ ใช้งานไม่ได้']], mat: 'ไทเทเนียม' }
     ] }
 ];
 const NEXT = {
