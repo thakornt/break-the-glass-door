@@ -544,6 +544,14 @@ function drawObj(c,o){
   markStrike(c,o,p);
 }
 function markStrike(c,o,p){c.fillStyle=css('--crit'); c.beginPath(); c.arc(X(o.x+p.sx),Yp(o.y+p.sy),Math.max(3,S*0.012),0,7); c.fill();}
+function nearMarkTxt(o,p){
+  if(broken) return '';
+  const fl=glass.flaws; if(!fl.length) return '';
+  const u=aimU(), v=(o.y+p.sy-PANEL.y0)/PANEL.b; let best=1e9;
+  for(const f of fl){const d=Math.hypot((f.u-u)*PANEL.a,(f.v-v)*PANEL.b); if(d<best)best=d;}
+  const mm=best*1000, ok=mm<=12;
+  return `<span>ห่างรอยร้าวเดิม <b style="color:var(${ok?'--ok':'--warn'})">${mm<1000?mm.toFixed(0)+' มม.':'>1 ม.'}</b> ${ok?'(ตีซ้ำแล้วรอยจะลึกขึ้น)':'(ต้องไม่เกิน 12 มม. รอยจึงสะสม)'}</span>`;
+}
 function drawSide(){
   const c=sctx; c.clearRect(0,0,side.width,side.height);
   c.fillStyle=css('--panel'); c.fillRect(0,0,side.width,side.height);
@@ -571,7 +579,7 @@ function drawSide(){
   // HUD
   if(cur&&!cur.destroyed){
     const sp=Math.hypot(cur.vx,cur.vy), p=pose(cur), m=cur.def.mass*cur.def.feff;
-    $('hud').innerHTML=`<span>${cur.def.name}</span><span>ความเร็ว <b>${sp.toFixed(2)}</b> / ${vMaxFor(cur.def.mass,faceOf(cur)).toFixed(1)} m/s</span><span>พลังงาน <b>${(0.5*m*cur.vx*cur.vx).toFixed(0)}</b> J (แนวตั้งฉากกระจก)</span><span>ความสูงจุดชน <b>${(cur.y+p.sy).toFixed(2)}</b> ม.</span>`;
+    $('hud').innerHTML=`<span>${cur.def.name}</span><span>ความเร็ว <b>${sp.toFixed(2)}</b> / ${vMaxFor(cur.def.mass,faceOf(cur)).toFixed(1)} m/s</span><span>พลังงาน <b>${(0.5*m*cur.vx*cur.vx).toFixed(0)}</b> J (แนวตั้งฉากกระจก)</span><span>ความสูงจุดชน <b>${(cur.y+p.sy).toFixed(2)}</b> ม.</span>`+nearMarkTxt(cur,p);
   } else $('hud').innerHTML=cur?`<span>${cur.def.name}แตกแล้ว กดปุ่มรีเซ็ตมุมบนขวาเพื่อเริ่มใหม่</span>`:'<span>เลือกวัตถุด้านล่าง</span>';
 }
 // deterministic rng for crack drawing
