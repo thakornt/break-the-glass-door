@@ -37,9 +37,11 @@ header p{margin:4px 0 0;color:var(--muted);max-width:70ch}
 .stage canvas.grabbing{cursor:grabbing}
 .hud{position:absolute;left:28%;top:8px;font-family:var(--f-mono);font-size:12px;color:var(--muted);pointer-events:none;display:grid;gap:2px}
 .hud b{color:var(--ink);font-weight:500}
-.alarm{position:absolute;left:28%;bottom:10px;font-family:var(--f-display);font-weight:600;font-size:14px;letter-spacing:.02em;padding:4px 12px;border-radius:999px;background:var(--crit);color:#fff;pointer-events:none}
-.alarm.safe{background:var(--ok)}
-@media (max-width:560px){.hud{left:30%;font-size:11px}.alarm{left:30%;font-size:12px}}
+.reset{position:absolute;top:8px;right:8px;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--panel);color:var(--ink);display:grid;place-items:center;cursor:pointer;padding:0}
+.reset:hover{border-color:var(--glass-edge)}
+.reset:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.reset svg{width:18px;height:18px}
+@media (max-width:560px){.hud{left:30%;font-size:11px}}
 .front{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px;display:grid;gap:8px}
 .front canvas{width:100%;height:auto;display:block;cursor:crosshair;touch-action:none}
 .cap{font-size:12px;color:var(--muted)}
@@ -96,7 +98,7 @@ details summary{cursor:pointer;font-family:var(--f-display);font-weight:600;font
     <div class="stage" id="stage">
       <canvas id="side" width="1100" height="660" aria-label="มุมมองด้านข้าง ลากวัตถุไปชนกระจกทางขวา"></canvas>
       <div class="hud" id="hud"></div>
-      <div class="alarm" id="alarm" role="status">ไฟลามมาจากด้านหลัง · ตีกระจกให้แตกเพื่อหนีออกไป</div>
+      <button class="reset" id="resetScene" type="button" aria-label="รีเซ็ตประตูกระจกและตำแหน่งวัตถุ" title="รีเซ็ตประตูกระจกและตำแหน่งวัตถุ"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button>
     </div>
     <div class="front">
       <div class="label">หน้ากระจก 0.90 × 2.10 ม.</div>
@@ -228,7 +230,6 @@ function newGlass(){
   const g=readGlass(); glass={type:g.type,t:g.t,flaws:[]}; marks=[]; hidden=sampleGlassStrength(g.type);
   history=[]; broken=null; shards=[]; glassHits=0;
   if(typeof fire!=='undefined'){fire.front=0.3;fire.parts=[];fire.smoke=[];}
-  $('alarm').textContent='ไฟลามมาจากด้านหลัง · ตีกระจกให้แตกเพื่อหนีออกไป'; $('alarm').classList.remove('safe');
   $('log').innerHTML='<tr><td colspan="10" class="cap">ยังไม่มีการชน</td></tr>';
   $('verdict').textContent='ติดตั้งกระจกบานใหม่แล้ว ลากวัตถุไปชนได้เลย';
   $('readout').innerHTML=''; $('dmgWrap').hidden=true;
@@ -401,7 +402,6 @@ function impact(o,ys){
   if(r.destroyed){o.destroyed=true;makeFrags(o);}
   if(r.glassBroken){
     broken={u,v,type:glass.type,t:simT,seed:Math.random()*1e9};
-    $('alarm').textContent=`ทางออกเปิดแล้ว · ใช้ ${glassHits} ครั้ง`; $('alarm').classList.add('safe');
     makeShards(); o.vx=v0*0.45;
   } else {
     o.vx=Math.min(r.vOut,-0.05*v0); if(o.held)o.vx*=0.6;
@@ -652,6 +652,10 @@ $('runCal').onclick=()=>{
 
 // ---------- wiring ----------
 $('newGlass').onclick=newGlass;
+$('resetScene').onclick=()=>{
+  newGlass();
+  if(cur){cur.held=false;cur.vx=cur.vy=0;cur.y=0;cur.x=1.1;const p=pose(cur);cur.x=Math.min(cur.x,WORLD.doorX-p.w-0.3);if(cur.x<0.1)cur.x=0.6;cur.lastHit=-9;ptr.on=false;side.classList.remove('grabbing');}
+};
 $('glassSel').onchange=newGlass;
 $('resetObj').onclick=()=>{for(const k in objs)delete objs[k];const id=cur?cur.def.id:'teak';cur=null;spawn(OBJECTS.find(d=>d.id===id));};
 $('reveal').onchange=()=>{};
