@@ -185,6 +185,8 @@ details summary{cursor:pointer;font-family:var(--f-display);font-weight:600;font
           <li>ตัวคูณลดความเค้นของการชนที่สั้นกว่า 1 มิลลิวินาที ปรับให้เทมเปอร์ 4–5 มม. ผ่านการทดสอบลูกเหล็ก 227 กรัม จาก 2 ม. ตาม ECE R43</li>
           <li>การโตของรอยร้าวเมื่อตีจุดเดิมซ้ำ (บิ่นและล้าจากการสัมผัส) ใช้ 25% ของความลึกที่ครั้งนั้นสร้างได้ เป็นค่าสมมติ</li>
           <li>มวลที่มีผล ความแข็งโครงสร้าง และกำลังยุบของวัตถุแต่ละชิ้นเป็นค่าประมาณทางวิศวกรรม ไม่ได้วัดจากของจริง</li>
+          <li>มือถือ: น้ำหนัก ขนาด และวัสดุเฟรมมาจากหน้าสเปกของผู้ผลิต (Apple, Samsung) ส่วนรัศมีมุมเครื่องและแรงที่ทำให้กระจกมือถือร้าวเป็นค่าประมาณ</li>
+          <li>จอ LED คือจอ LCD ที่ใช้ไฟ LED ส่องหลัง ความต่างในโมเดลจึงอยู่ที่น้ำหนัก ความบาง และวัสดุขาตั้ง ไม่ใช่ชนิดของแผงจอ</li>
           <li>คนออกแรงลากได้สูงสุด 450 N ใส่พลังงานให้วัตถุได้ไม่เกิน 150 J และขยับมือได้ไม่เกิน 14 m/s</li>
         </ul>
         <h3>ข้อจำกัด</h3>
@@ -246,7 +248,7 @@ function pose(o){
     case 'chair-back': return {w:0.65,h:1.0,sx:0.65,sy:0.78};
     case 'ext-side': return {w:0.17,h:0.55,sx:0.17,sy:0.3};
     case 'ext-rim': return {w:0.55,h:0.17,sx:0.55,sy:0.085};
-    default: return {w:d.w,h:d.h,sx:d.w,sy:d.h};
+    default: { const fc=faceOf(o); return {w:d.w,h:d.h,sx:d.w*(fc.fx??1),sy:d.h*(fc.fy??1)}; }
   }
 }
 function spawn(def){
@@ -257,7 +259,7 @@ function spawn(def){
   renderPalette(); renderFaces();
 }
 function renderPalette(){
-  $('palette').innerHTML=OBJECTS.map(d=>`<button class="obj" data-id="${d.id}" aria-pressed="${cur&&cur.def.id===d.id}"><span class="n">${d.name}</span><span class="m">${d.mass} kg · สูงสุด ~${vMaxFor(d.mass).toFixed(1)} m/s</span></button>`).join('');
+  $('palette').innerHTML=OBJECTS.map(d=>`<button class="obj" data-id="${d.id}" aria-pressed="${cur&&cur.def.id===d.id}"><span class="n">${d.name}</span><span class="m">${d.mass<1?Math.round(d.mass*1000)+' g':d.mass+' kg'} · สูงสุด ~${vMaxFor(d.mass,d.faces[0]).toFixed(1)} m/s</span></button>`).join('');
   $('palette').querySelectorAll('.obj').forEach(b=>b.onclick=()=>spawn(OBJECTS.find(d=>d.id===b.dataset.id)));
 }
 function renderFaces(){
@@ -267,6 +269,8 @@ function renderFaces(){
   const st=cur.st; const bits=[];
   if(st.crush) bits.push(`มุมยุบสะสม ${(st.crush*1000).toFixed(1)} มม.`);
   if(st.casterBroken) bits.push('ล้อหักแล้ว ครั้งต่อไปฐานอะลูมิเนียมจะชนแทน');
+  if(st.damaged) bits.push('สภาพ: '+st.damaged);
+  const fc=cur.def.faces[cur.fi]; if(cur.def.shape==='phone'||cur.def.shape==='fold') bits.push(`${Math.round(cur.def.mass*1000)} g · ${fc.mat} · ค่าน้ำหนักและวัสดุจากสเปกผู้ผลิต`);
   $('objhint').textContent=bits.length?bits.join(' · '):'ลากวัตถุในมุมด้านข้าง ยิ่งลากเร็วยิ่งชนแรง แต่ไม่เกินขีดของคน';
 }
 
@@ -275,7 +279,7 @@ let ptr={x:0,y:0,on:false,id:null};
 function toWorld(e){const r=side.getBoundingClientRect();const sx=side.width/r.width;return {x:(e.clientX-r.left)*sx/S,y:(side.height-(e.clientY-r.top)*sx)/S};}
 side.addEventListener('pointerdown',e=>{
   if(!cur||cur.destroyed)return; const w=toWorld(e); const p=pose(cur);
-  const pad=0.12;
+  const pad=Math.max(0.12, 0.06);
   if(w.x>cur.x-pad&&w.x<cur.x+p.w+pad&&w.y>cur.y-pad&&w.y<cur.y+p.h+pad){
     cur.held=true; cur.gdx=w.x-cur.x; cur.gdy=w.y-cur.y; ptr={...w,on:true}; side.setPointerCapture(e.pointerId); side.classList.add('grabbing'); e.preventDefault();
   }
@@ -339,7 +343,7 @@ function step(dt){
   fireStep(dt);
   for(const o of Object.values(objs)){
     if(o.destroyed){o.frags.forEach(f=>{f.vy-=9.81*dt;f.x+=f.vx*dt;f.y+=f.vy*dt;if(f.y<0){f.y=0;f.vy*=-0.2;f.vx*=0.6;}});continue;}
-    const m=o.def.mass, p=pose(o), vmax=vMaxFor(m);
+    const m=o.def.mass, p=pose(o), vmax=vMaxFor(m,faceOf(o));
     if(o.held&&o===cur){
       const tx=ptr.x-o.gdx, ty=ptr.y-o.gdy, om=30;
       let fx=m*om*om*(tx-o.x)-2*m*om*o.vx, fy=m*om*om*(ty-o.y)-2*m*om*o.vy;
@@ -359,7 +363,7 @@ function step(dt){
     const sxw=o.x+p.sx, syw=o.y+p.sy;
     if(!broken&&prevSx<=WORLD.doorX&&sxw>WORLD.doorX){
       o.x=WORLD.doorX-p.sx-0.0005;
-      if(o.vx>0.2&&simT-o.lastHit>0.2){impact(o,syw);} else {o.vx=Math.min(0,o.vx);}
+      if(o.vx>0.5&&simT-o.lastHit>0.25){impact(o,syw);} else {o.vx=Math.min(0,o.vx);}
     }
     if(broken&&o.x>WORLD.w)o.x=WORLD.w-0.01;
   }
@@ -425,7 +429,7 @@ function showResult(o,face,spec,r,pNext){
     const pc=pNext&&pNext.p!=null?pNext.p:0;
     setVerdict('กระจกยังไม่แตก',pc>0.5?'warn':'ok', r.coneDepth>0?(tempered?'มีรอยตำหนิซ่อนอยู่ใต้ผิว':'มีรอยบิ่นและรอยร้าวเล็กที่จุดชน'):'ไม่มีความเสียหายที่สะสม');
   }
-  const objState=r.destroyed?'แตก':r.switched?'ล้อหัก':r.crushAdd>0.0005?`ยุบ ${fmt(r.crushAdd*1000)} มม.`:'ปกติ';
+  const objState=r.destroyed?'แตก':r.switched?'ล้อหัก':r.objDamaged?r.objDamaged+(r.crushAdd>0.0005?` · ยุบ ${fmt(r.crushAdd*1000)} มม.`:''):r.crushAdd>0.0005?`ยุบ ${fmt(r.crushAdd*1000)} มม.`:(o.st.damaged||'ปกติ');
   const charS=tempered?120:45;
   const items=[
     ['วัตถุที่ชน',spec.label],
@@ -472,6 +476,27 @@ function drawObj(c,o){
   c.save(); c.translate(x0,y0); // origin bottom-left, y up = negative
   c.fillStyle=col; c.strokeStyle=css('--ink'); c.lineWidth=Math.max(1,S*0.004);
   const crush=(o.st.crush||0)*S;
+  const shp=o.def.shape, px=v=>Math.max(v*S,3);
+  if(shp==='phone'||shp==='fold'){
+    const t=px(p.h); c.fillStyle=col; rr(c,0,-t,W,t,Math.min(t/2,4)); c.fill(); c.stroke();
+    c.fillStyle=css('--ink'); c.globalAlpha=0.6; c.fillRect(W*0.06,-t*0.75,W*0.88,Math.max(1,t*0.25)); c.globalAlpha=1;
+    if(shp==='fold'){c.fillStyle=css('--muted');c.fillRect(W-Math.max(3,0.004*S),-t,Math.max(3,0.004*S),t);}
+    if(o.st.damaged){c.strokeStyle=css('--crit');c.beginPath();c.moveTo(W*0.3,-t);c.lineTo(W*0.45,0);c.lineTo(W*0.6,-t);c.stroke();}
+    c.restore(); markStrike(c,o,p); return;
+  }
+  if(shp==='monitor'){
+    const pan=0.03*S; c.fillStyle=col; c.fillRect(W*0.1,-H,W*0.9,H*0.72); c.strokeRect(W*0.1,-H,W*0.9,H*0.72);
+    c.fillStyle=o.st.damaged?css('--crit'):css('--glass'); c.globalAlpha=o.st.damaged?0.5:0.35; c.fillRect(W*0.12,-H*0.98,W*0.86,H*0.66); c.globalAlpha=1;
+    c.fillStyle=css('--muted'); c.fillRect(W*0.5,-H*0.28,0.03*S,H*0.26); c.fillRect(W*0.25,-0.02*S,W*0.75,0.02*S);
+    c.restore(); markStrike(c,o,p); return;
+  }
+  if(shp==='mouse'){ c.fillStyle=col; c.beginPath(); c.ellipse(W/2,-H/2,W/2,H/2,0,0,7); c.fill(); c.stroke();
+    c.strokeStyle=css('--muted'); c.beginPath(); c.moveTo(0,-H/2); c.quadraticCurveTo(-0.15*S,-H*3,-0.3*S,-H); c.stroke(); c.restore(); markStrike(c,o,p); return; }
+  if(shp==='keyboard'){ c.fillStyle=col; c.fillRect(0,-H,W,H); c.strokeRect(0,-H,W,H); c.fillStyle=css('--muted');
+    for(let i=0;i<14;i++) c.fillRect(W*0.03+i*W*0.068,-H*1.25,W*0.05,H*0.3); c.restore(); markStrike(c,o,p); return; }
+  if(shp==='strip'){ c.fillStyle=col; rr(c,0,-H,W,H,0.008*S); c.fill(); c.stroke(); c.fillStyle=css('--muted');
+    for(let i=0;i<4;i++) c.fillRect(W*0.15+i*W*0.2,-H*0.7,W*0.08,H*0.4);
+    c.strokeStyle=css('--ink'); c.beginPath(); c.moveTo(0,-H/2); c.bezierCurveTo(-0.2*S,-H/2,-0.25*S,0.05*S,-0.5*S,-0.02*S); c.stroke(); c.restore(); markStrike(c,o,p); return; }
   if(f==='teak-corner'||f==='mdf-corner'||f==='ply-corner'){
     const top=0.045*S;
     c.beginPath(); c.moveTo(0,-H); c.lineTo(W-crush,-H); c.lineTo(W,-H+crush); c.lineTo(W,-H+top); c.lineTo(0,-H+top); c.closePath(); c.fill(); c.stroke();
@@ -504,9 +529,9 @@ function drawObj(c,o){
     c.fillStyle=col; c.fillRect(0,-H,W,H); c.strokeRect(0,-H,W,H);
   }
   c.restore();
-  // strike point marker
-  c.fillStyle=css('--crit'); c.beginPath(); c.arc(X(o.x+p.sx),Yp(o.y+p.sy),Math.max(3,S*0.012),0,7); c.fill();
+  markStrike(c,o,p);
 }
+function markStrike(c,o,p){c.fillStyle=css('--crit'); c.beginPath(); c.arc(X(o.x+p.sx),Yp(o.y+p.sy),Math.max(3,S*0.012),0,7); c.fill();}
 function drawSide(){
   const c=sctx; c.clearRect(0,0,side.width,side.height);
   c.fillStyle=css('--panel'); c.fillRect(0,0,side.width,side.height);
@@ -534,7 +559,7 @@ function drawSide(){
   // HUD
   if(cur&&!cur.destroyed){
     const sp=Math.hypot(cur.vx,cur.vy), p=pose(cur), m=cur.def.mass*cur.def.feff;
-    $('hud').innerHTML=`<span>${cur.def.name}</span><span>ความเร็ว <b>${sp.toFixed(2)}</b> / ${vMaxFor(cur.def.mass).toFixed(1)} m/s</span><span>พลังงาน <b>${(0.5*m*cur.vx*cur.vx).toFixed(0)}</b> J (แนวตั้งฉากกระจก)</span><span>ความสูงจุดชน <b>${(cur.y+p.sy).toFixed(2)}</b> ม.</span>`;
+    $('hud').innerHTML=`<span>${cur.def.name}</span><span>ความเร็ว <b>${sp.toFixed(2)}</b> / ${vMaxFor(cur.def.mass,faceOf(cur)).toFixed(1)} m/s</span><span>พลังงาน <b>${(0.5*m*cur.vx*cur.vx).toFixed(0)}</b> J (แนวตั้งฉากกระจก)</span><span>ความสูงจุดชน <b>${(cur.y+p.sy).toFixed(2)}</b> ม.</span>`;
   } else $('hud').innerHTML=cur?`<span>${cur.def.name}แตกแล้ว เลือกวัตถุใหม่</span>`:'<span>เลือกวัตถุด้านล่าง</span>';
 }
 // deterministic rng for crack drawing

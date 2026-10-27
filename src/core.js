@@ -89,7 +89,7 @@ function simulateImpact(p) {
   const near = flaws.map(fl => ({ fl, d: Math.hypot((fl.u - u) * PANEL.a, (fl.v - v) * PANEL.b), smax: 0 }));
   const dt = me < 2 ? 2.5e-7 : 1e-6;
   const crushStart = law.crushPrev;
-  let maxCrushHere = 0; let dbg = null; let tOn = null, prevOn = false; let aEffR = 0.1;
+  let maxCrushHere = 0; let dbg = null; let objDamaged = null; let tOn = null, prevOn = false; let aEffR = 0.1;
   const steps = Math.floor(0.09 / dt);
   for (let i = 0; i < steps; i++) {
     let F = 0, r = 0;
@@ -114,6 +114,7 @@ function simulateImpact(p) {
           const rc = law.pc < Infinity && (dp > 0 || law.crushPrev > 0) ? Math.sqrt(areaOf(law, law.crushPrev + dp) / Math.PI) : 0;
           r = Math.max(rh, rc);
         }
+        if (law.damageF && F > law.damageF && !objDamaged) objDamaged = law.damageLabel || 'เสียหาย';
         if (law.breakF && F > law.breakF) {
           F = law.breakF;
           if (law.next) { // e.g. caster snaps -> aluminium base
@@ -173,7 +174,7 @@ function simulateImpact(p) {
   const sizeF = Math.min(G.sizeCap, Math.max(1, Math.pow(G.Aref / (Math.PI * aEffR * aEffR), 1 / G.wm)));
   const res = {
     v0, me, Ein: 0.5 * me * v0 * v0, Fmax, sigMax, wmax, Eabs, vOut: ks ? (mtip * vx + mb * vb) / me : vx, destroyed, switched, lawName,
-    crushAdd: maxCrushHere, dbg, contactTime: tc0 === null ? 0 : (tEnd - tc0),
+    crushAdd: maxCrushHere, dbg, objDamaged, contactTime: tc0 === null ? 0 : (tEnd - tc0),
     glassBroken: false, breakCause: '', newFlaw: null, flawMaxRatio: 0, coneDepth: 0, dc, tempered,
     strengthRatio: sigMax / (hid.sf0 * sizeF + scLoc), sizeF, frame: false
   };
@@ -239,6 +240,7 @@ function simulateImpact(p) {
     if (switched) { st.casterBroken = true; st.sub = st.sub || {}; st.sub.crush = (st.sub.crush || 0) + maxCrushHere; }
     else st.crush = (st.crush || 0) + maxCrushHere;
     if (destroyed) st.destroyed = true;
+    if (objDamaged) st.damaged = objDamaged;
     st.hits = (st.hits || 0) + 1;
   }
   return res;

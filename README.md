@@ -42,6 +42,20 @@ node test/check.js
 - **EN 12600** (ตุ้มยาง 50 kg): เทมเปอร์ 10 มม. ไม่แตกถึงความสูง 1,200 มม.
 - **ECE R43** (ลูกเหล็ก 227 g จาก 2 ม.): เทมเปอร์ 4–5 มม. ไม่แตก กระจกธรรมดาแตก
 
+## วัตถุ
+
+โต๊ะ 3 แบบ (ไม้สัก, plywood, ปาร์ติเคิลบอร์ด), เก้าอี้ออฟฟิศ, ถังดับเพลิง, แพ็คกระดาษ, แก้วกาแฟ, ที่เย็บกระดาษ, จอ LCD และ LED, เมาส์, คีย์บอร์ด, ปลั๊กพ่วง และมือถือ 5 รุ่น
+
+| มือถือ | น้ำหนัก | ขนาด (มม.) | เฟรม |
+|---|---|---|---|
+| iPhone 18 Pro | 211 g | 150.0 × 71.9 × 8.75 | อะลูมิเนียม unibody |
+| iPhone 18 Pro Max | 249 g | 163.4 × 78.0 × 8.75 | อะลูมิเนียม unibody |
+| Galaxy S26 Ultra | 214 g | 163.6 × 78.1 × 7.9 | Armor Aluminum 3 |
+| Galaxy Z Fold8 (พับ) | 201 g | 123.9 × 81.9 × 9.7 | Armor Aluminum |
+| iPhone Duo (พับ) | 254 g | 117.8 × 84.1 × 11.3 | ไทเทเนียมเกรด 5 |
+
+ที่มา: [Apple iPhone 18 Pro specs](https://www.apple.com/iphone-18-pro/specs/), [Apple iPhone Duo specs](https://support.apple.com/en-gb/148588), [Galaxy S26 Ultra (Google Fi)](https://fi.google.com/about/phones/samsung-galaxy-s26-ultra-specs), [Galaxy Z Fold8 (Google Fi)](https://fi.google.com/about/phones/samsung-galaxy-z-fold8-specs?hl=es)
+
 ## ค่าที่เป็นสมมติฐาน
 
 - ตัวคูณลดความเค้นของการชนที่สั้นกว่า 1 ms (ปรับให้ตรง ECE R43)
