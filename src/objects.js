@@ -23,9 +23,12 @@ const OBJECTS = [
       { id: 'ext-rim', label: 'ขอบก้นถัง (เหล็ก)', kind: 'hertz', Eo: 200e9, nuo: 0.3, R: 0.004, area: 'sphere', pc: 1.05e9, hard: true, mat: 'เหล็ก', mtip: 0.6, ks: 1.5e7 },
       { id: 'ext-side', label: 'ด้านข้างตัวถัง', kind: 'hertz', Eo: 200e9, nuo: 0.3, R: 0.08, area: 'sphere', pc: 1.05e9, hard: true, mat: 'เหล็ก', mtip: 0.8, ks: 1e7 }
     ] },
-  { id: 'paper', name: 'แพ็คกระดาษ A4 (500 แผ่น)', mass: 2.5, feff: 0.7, w: 0.3, h: 0.055, color: '#e9e6dc',
+  { id: 'paper', name: 'กองกระดาษ A4', mass: 2.5, feff: 0.7, w: 0.3, h: 0.05, color: '#e9e6dc',
     faces: [
-      { id: 'paper-corner', label: 'มุมแพ็ค', kind: 'hertz', Eo: 0.3e9, nuo: 0.2, R: 0.003, area: 'corner', A0: 4e-6, g: 10, pc: 0.6e6, hard: false, mat: 'กระดาษ' }
+      { id: 'paper-500', label: '500 แผ่น (1 รีม · 2.5 kg)', mass: 2.5, feff: 0.7, h: 0.05, kind: 'hertz', Eo: 0.3e9, nuo: 0.2, R: 0.003, area: 'corner', A0: 4e-6, g: 10, pc: 0.6e6, hard: false, mat: 'กระดาษ' },
+      { id: 'paper-1000', label: '1,000 แผ่น (2 รีม · 5 kg)', mass: 5, feff: 0.65, h: 0.10, kind: 'hertz', Eo: 0.3e9, nuo: 0.2, R: 0.003, area: 'corner', A0: 4e-6, g: 10, pc: 0.6e6, hard: false, mat: 'กระดาษ' },
+      { id: 'paper-2000', label: '2,000 แผ่น (4 รีม · 10 kg)', mass: 10, feff: 0.6, h: 0.20, kind: 'hertz', Eo: 0.3e9, nuo: 0.2, R: 0.003, area: 'corner', A0: 4e-6, g: 10, pc: 0.6e6, hard: false, mat: 'กระดาษ' },
+      { id: 'paper-5000', label: '5,000 แผ่น (10 รีม · 25 kg)', mass: 25, feff: 0.55, h: 0.50, kind: 'hertz', Eo: 0.3e9, nuo: 0.2, R: 0.003, area: 'corner', A0: 4e-6, g: 10, pc: 0.6e6, hard: false, mat: 'กระดาษ' }
     ] },
   { id: 'mug', name: 'แก้วกาแฟเซรามิก', mass: 0.35, feff: 1, w: 0.1, h: 0.1, color: '#f2f2ee',
     faces: [

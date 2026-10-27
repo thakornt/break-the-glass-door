@@ -7,4 +7,4 @@ for(const g of [['tempered',0.004],['tempered',0.005],['annealed',0.004],['annea
 console.log('--- EN12600');
 for(const g of [['annealed',0.006],['tempered',0.008],['tempered',0.010]]) for(const h of [0.19,0.45,1.2]) console.log(g.join(''),h,run(50,Math.sqrt(2*9.81*h),O.EN12600,g,0.5,0.5));
 console.log('--- office objects max swing, center');
-for(const o of O.OBJECTS) for(const f of o.faces){ const v=O.vMaxFor(o.mass); for(const g of [['annealed',0.006],['tempered',0.010]]) console.log(f.id.padEnd(16),g.join('').padEnd(12),'v='+v.toFixed(1),run(o.mass*o.feff,v,f,g)); }
+for(const o of O.OBJECTS) for(const f of o.faces){ const v=O.vMaxFor(f.mass??o.mass,f); for(const g of [['annealed',0.006],['tempered',0.010]]) console.log(f.id.padEnd(16),g.join('').padEnd(12),'v='+v.toFixed(1),run((f.mass??o.mass)*(f.feff??o.feff),v,f,g)); }

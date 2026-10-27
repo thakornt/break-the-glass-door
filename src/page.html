@@ -112,7 +112,7 @@ details summary{cursor:pointer;font-family:var(--f-display);font-weight:600;font
     <div class="box">
       <div class="label">วัตถุ</div>
       <div class="palette" id="palette"></div>
-      <div class="label">ด้านที่ใช้ชน</div>
+      <div class="label" id="facesLabel">ด้านที่ใช้ชน</div>
       <div class="chips" id="faces"></div>
       <div class="cap" id="objhint"></div>
     </div>
@@ -242,6 +242,7 @@ function newGlass(){
 // ---------- objects ----------
 const objs={}; let cur=null;
 function faceOf(o){return o.def.faces[o.fi];}
+const massOf=o=>faceOf(o).mass??o.def.mass, feffOf=o=>faceOf(o).feff??o.def.feff;
 function pose(o){
   const f=faceOf(o).id, d=o.def;
   switch(f){
@@ -250,7 +251,7 @@ function pose(o){
     case 'chair-back': return {w:0.65,h:1.0,sx:0.65,sy:0.78};
     case 'ext-side': return {w:0.17,h:0.55,sx:0.17,sy:0.3};
     case 'ext-rim': return {w:0.55,h:0.17,sx:0.55,sy:0.085};
-    default: { const fc=faceOf(o); return {w:d.w,h:d.h,sx:d.w*(fc.fx??1),sy:d.h*(fc.fy??1)}; }
+    default: { const fc=faceOf(o), h=fc.h??d.h; return {w:d.w,h,sx:d.w*(fc.fx??1),sy:h*(fc.fy??1)}; }
   }
 }
 function spawn(def){
@@ -261,13 +262,14 @@ function spawn(def){
   renderPalette(); renderFaces();
 }
 function renderPalette(){
-  $('palette').innerHTML=OBJECTS.map(d=>`<button class="obj" data-id="${d.id}" aria-pressed="${cur&&cur.def.id===d.id}"><span class="n">${d.name}</span><span class="m">${d.mass<1?Math.round(d.mass*1000)+' g':d.mass+' kg'} · สูงสุด ~${vMaxFor(d.mass,d.faces[0]).toFixed(1)} m/s</span></button>`).join('');
+  $('palette').innerHTML=OBJECTS.map(d=>`<button class="obj" data-id="${d.id}" aria-pressed="${cur&&cur.def.id===d.id}"><span class="n">${d.name}</span><span class="m">${d.faces.some(f=>f.mass)?(d.faces.length+' ขนาด · '+d.faces[0].mass+'–'+d.faces.at(-1).mass+' kg'):(d.mass<1?Math.round(d.mass*1000)+' g':d.mass+' kg')+' · สูงสุด ~'+vMaxFor(d.mass,d.faces[0]).toFixed(1)+' m/s'}</span></button>`).join('');
   $('palette').querySelectorAll('.obj').forEach(b=>b.onclick=()=>spawn(OBJECTS.find(d=>d.id===b.dataset.id)));
 }
 function renderFaces(){
   if(!cur){$('faces').innerHTML='';return;}
+  $('facesLabel').textContent=cur.def.faces.some(f=>f.mass)?'จำนวนแผ่น (ชนด้วยมุมกอง)':'ด้านที่ใช้ชน';
   $('faces').innerHTML=cur.def.faces.map((f,i)=>`<button class="chip" data-i="${i}" aria-pressed="${i===cur.fi}">${f.label}</button>`).join('');
-  $('faces').querySelectorAll('.chip').forEach(b=>b.onclick=()=>{cur.fi=+b.dataset.i;const p=pose(cur);cur.x=Math.min(cur.x,WORLD.doorX-p.w-0.05);renderFaces();});
+  $('faces').querySelectorAll('.chip').forEach(b=>b.onclick=()=>{if(cur.def.faces[+b.dataset.i].mass&&+b.dataset.i!==cur.fi){cur.st={};} cur.fi=+b.dataset.i;const p=pose(cur);cur.x=Math.min(cur.x,WORLD.doorX-p.w-0.05);renderFaces();});
   const st=cur.st; const bits=[];
   if(st.crush) bits.push(`มุมยุบสะสม ${(st.crush*1000).toFixed(1)} มม.`);
   if(st.casterBroken) bits.push('ล้อหักแล้ว ครั้งต่อไปฐานอะลูมิเนียมจะชนแทน');
@@ -356,7 +358,7 @@ function step(dt){
   fireStep(dt);
   for(const o of Object.values(objs)){
     if(o.destroyed){o.frags.forEach(f=>{f.vy-=9.81*dt;f.x+=f.vx*dt;f.y+=f.vy*dt;if(f.y<0){f.y=0;f.vy*=-0.2;f.vx*=0.6;}});continue;}
-    const m=o.def.mass, p=pose(o), vmax=vMaxFor(m,faceOf(o));
+    const m=massOf(o), p=pose(o), vmax=vMaxFor(m,faceOf(o));
     if(o.held&&o===cur){
       const tx=ptr.x-o.gdx, ty=ptr.y-o.gdy, om=30;
       let fx=m*om*om*(tx-o.x)-2*m*om*o.vx, fy=m*om*om*(ty-o.y)-2*m*om*o.vy;
@@ -392,13 +394,13 @@ function impact(o,ys){
   const v0=o.vx;
   if(v<0.01||v>0.99){ // frame
     o.vx=-0.25*v0;
-    logRow({name:o.def.name,face:face.label,v0,E:0.5*o.def.mass*o.def.feff*v0*v0,frame:true});
+    logRow({name:o.def.name,face:face.label,v0,E:0.5*massOf(o)*feffOf(o)*v0*v0,frame:true});
     setVerdict('ชนกรอบประตู ไม่ใช่กระจก','warn','ยกให้จุดชนอยู่ในช่วงความสูงของกระจก');
     return;
   }
   const spec=o.st.casterBroken?NEXT['chair-base']:face;
   const stObj=o.st.casterBroken?(o.st.sub||(o.st.sub={})):o.st;
-  const me=o.def.mass*o.def.feff;
+  const me=massOf(o)*feffOf(o);
   const args={me,v0,spec,next:NEXT,glass,u,v};
   const pre=JSON.parse(JSON.stringify(stObj));
   const r=simulateImpact(Object.assign({},args,{objState:stObj,hidden}));
@@ -585,8 +587,8 @@ function drawSide(){
   }
   // HUD
   if(cur&&!cur.destroyed){
-    const sp=Math.hypot(cur.vx,cur.vy), p=pose(cur), m=cur.def.mass*cur.def.feff;
-    $('hud').innerHTML=`<span>${cur.def.name}</span><span>ความเร็ว <b>${sp.toFixed(2)}</b> / ${vMaxFor(cur.def.mass,faceOf(cur)).toFixed(1)} m/s</span><span>พลังงาน <b>${(0.5*m*cur.vx*cur.vx).toFixed(0)}</b> J (แนวตั้งฉากกระจก)</span><span>ความสูงจุดชน <b>${(cur.y+p.sy).toFixed(2)}</b> ม.</span>`+nearMarkTxt(cur,p);
+    const sp=Math.hypot(cur.vx,cur.vy), p=pose(cur), m=massOf(cur)*feffOf(cur);
+    $('hud').innerHTML=`<span>${cur.def.name}</span><span>ความเร็ว <b>${sp.toFixed(2)}</b> / ${vMaxFor(massOf(cur),faceOf(cur)).toFixed(1)} m/s</span><span>พลังงาน <b>${(0.5*m*cur.vx*cur.vx).toFixed(0)}</b> J (แนวตั้งฉากกระจก)</span><span>ความสูงจุดชน <b>${(cur.y+p.sy).toFixed(2)}</b> ม.</span>`+nearMarkTxt(cur,p);
   } else $('hud').innerHTML=cur?`<span>${cur.def.name}แตกแล้ว กดปุ่มรีเซ็ตมุมบนขวาเพื่อเริ่มใหม่</span>`:'<span>เลือกวัตถุด้านล่าง</span>';
 }
 // deterministic rng for crack drawing

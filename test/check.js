@@ -10,12 +10,12 @@ function rate(me, v, spec, type, t, N = 60) {
   }
   return b / N;
 }
-const [teak, teakF] = face('teak-corner'), [paper, paperF] = face('paper-corner');
+const [teak, teakF] = face('teak-corner'), [paper, paperF] = face('paper-500');
 const checks = [
   ['ECE R43: tempered 5 mm survives 227 g ball from 2 m', () => rate(0.227, Math.sqrt(2 * 9.81 * 2), ball, 'tempered', 0.005), p => p < 0.1],
   ['ECE R43: annealed 4 mm breaks under 227 g ball from 2 m', () => rate(0.227, Math.sqrt(2 * 9.81 * 2), ball, 'annealed', 0.004), p => p > 0.9],
   ['EN 12600: tempered 10 mm mostly survives 1,200 mm drop', () => rate(50, Math.sqrt(2 * 9.81 * 1.2), O.EN12600, 'tempered', 0.010), p => p < 0.2],
-  ['Paper ream does not break tempered 10 mm', () => rate(paper.mass * paper.feff, O.vMaxFor(paper.mass), paperF, 'tempered', 0.010), p => p < 0.05],
+  ['Paper stacks (500-5000 sheets) do not break tempered 10 mm', () => Math.max(...paper.faces.map(f => rate(f.mass * f.feff, O.vMaxFor(f.mass, f), f, 'tempered', 0.010, 30))), p => p < 0.05],
   ['Solid teak corner at full swing can break tempered 10 mm, not always', () => rate(teak.mass * teak.feff, O.vMaxFor(teak.mass), teakF, 'tempered', 0.010, 100), p => p > 0.03 && p < 0.7],
 ];
 let fail = 0;
