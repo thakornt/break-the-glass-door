@@ -1,0 +1,644 @@
+<title>ห้องทดลองประตูกระจก</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: test-bench — wide side-view rig + narrow front-face of the pane, readouts below like an instrument log */
+:root{
+  --bg:#eef2f3; --panel:#f8fafa; --ink:#18232a; --muted:#5b6b73; --line:#cdd8db;
+  --glass:#cfe7ea; --glass-edge:#4f8f96; --accent:#1f6f78; --accent-ink:#ffffff;
+  --frame:#7d8a90; --floor:#d9e0e2; --ok:#2f7d4f; --warn:#b7791f; --crit:#c0392b;
+  --crack:#33525a; --hidden:#c0392b;
+  --f-display:"Chakra Petch","IBM Plex Sans Thai",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans Thai",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12181b; --panel:#192125; --ink:#e3ecee; --muted:#93a4ab; --line:#2c3a40;
+  --glass:#244a50; --glass-edge:#6fb7bf; --accent:#5fb5bf; --accent-ink:#0d1416;
+  --frame:#6d7b82; --floor:#222c30; --ok:#5fbf86; --warn:#e0a84a; --crit:#ef6a5a;
+  --crack:#d6eef1; --hidden:#ef6a5a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12181b; --panel:#192125; --ink:#e3ecee; --muted:#93a4ab; --line:#2c3a40;
+  --glass:#244a50; --glass-edge:#6fb7bf; --accent:#5fb5bf; --accent-ink:#0d1416;
+  --frame:#6d7b82; --floor:#222c30; --ok:#5fbf86; --warn:#e0a84a; --crit:#ef6a5a;
+  --crack:#d6eef1; --hidden:#ef6a5a; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:1180px;margin:0 auto;display:grid;gap:18px}
+header h1{font-family:var(--f-display);font-weight:700;font-size:clamp(24px,3.4vw,34px);letter-spacing:.01em;margin:0;text-wrap:balance}
+header p{margin:4px 0 0;color:var(--muted);max-width:70ch}
+.rig{display:grid;grid-template-columns:minmax(0,1fr) 220px;gap:14px;align-items:start}
+@media (max-width:760px){.rig{grid-template-columns:minmax(0,1fr)}}
+.stage{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden;touch-action:none}
+.stage canvas{display:block;width:100%;height:auto;cursor:grab}
+.stage canvas.grabbing{cursor:grabbing}
+.hud{position:absolute;left:28%;top:8px;font-family:var(--f-mono);font-size:12px;color:var(--muted);pointer-events:none;display:grid;gap:2px}
+.hud b{color:var(--ink);font-weight:500}
+.alarm{position:absolute;left:28%;bottom:10px;font-family:var(--f-display);font-weight:600;font-size:14px;letter-spacing:.02em;padding:4px 12px;border-radius:999px;background:var(--crit);color:#fff;pointer-events:none}
+.alarm.safe{background:var(--ok)}
+@media (max-width:560px){.hud{left:30%;font-size:11px}.alarm{left:30%;font-size:12px}}
+.front{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px;display:grid;gap:8px}
+.front canvas{width:100%;height:auto;display:block;cursor:crosshair;touch-action:none}
+.cap{font-size:12px;color:var(--muted)}
+.label{font-family:var(--f-display);font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.controls{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:14px}
+@media (max-width:860px){.controls{grid-template-columns:minmax(0,1fr)}}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;display:grid;gap:10px;min-width:0}
+.palette{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.obj{all:unset;cursor:pointer;border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:grid;gap:2px;background:var(--bg)}
+.obj:hover{border-color:var(--glass-edge)}
+.obj:focus-visible,.chip:focus-visible,button:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.obj[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.obj .n{font-weight:600;font-size:14px;line-height:1.3}
+.obj .m{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{all:unset;cursor:pointer;font-size:13px;border:1px solid var(--line);border-radius:999px;padding:4px 12px;background:var(--bg)}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+select,button.btn{font:inherit;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:6px 10px;background:var(--bg);color:var(--ink)}
+button.btn{cursor:pointer}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+label.chk{display:flex;gap:8px;align-items:center;font-size:14px;cursor:pointer}
+.readout{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px 14px}
+.kv{display:grid;gap:0;min-width:0}
+.kv .k{font-size:12px;color:var(--muted)}
+.kv .v{font-family:var(--f-mono);font-size:15px;font-variant-numeric:tabular-nums}
+.verdict{font-family:var(--f-display);font-size:20px;font-weight:600;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.pill{font-family:var(--f-body);font-size:12px;font-weight:600;border-radius:999px;padding:2px 10px;border:1px solid currentColor}
+.ok{color:var(--ok)} .warn{color:var(--warn)} .crit{color:var(--crit)}
+.meter{height:8px;border-radius:4px;background:var(--bg);border:1px solid var(--line);overflow:hidden}
+.meter i{display:block;height:100%;background:var(--warn);width:0}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-weight:600;color:var(--muted);font-size:12px}
+td.mono{font-family:var(--f-mono)}
+.notes{display:grid;gap:8px}
+.notes h3{font-family:var(--f-display);margin:6px 0 0;font-size:16px}
+.notes p,.notes li{max-width:75ch;margin:0}
+.notes ul{margin:0;padding-left:20px;display:grid;gap:4px}
+details summary{cursor:pointer;font-family:var(--f-display);font-weight:600;font-size:16px}
+.cal{display:grid;gap:6px}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>ห้องทดลองประตูกระจก</h1>
+    <p>ไฟลามมาจากด้านหลังห้อง ทางออกเดียวคือประตูกระจก เลือกวัตถุในออฟฟิศ ลากไปชนประตูกระจก ความเร็วที่ลากได้ถูกจำกัดด้วยแรงและกำลังของคน ของหนักจึงตามเมาส์ช้ากว่า ผลการชนคำนวณจากกลศาสตร์การชน การดัดของแผ่นกระจก และกลศาสตร์รอยร้าว ไม่มีการกำหนดจำนวนครั้งที่ต้องตีไว้ล่วงหน้า</p>
+  </header>
+
+  <section class="rig" aria-label="แท่นทดสอบ">
+    <div class="stage" id="stage">
+      <canvas id="side" width="1100" height="660" aria-label="มุมมองด้านข้าง ลากวัตถุไปชนกระจกทางขวา"></canvas>
+      <div class="hud" id="hud"></div>
+      <div class="alarm" id="alarm" role="status">ไฟลามมาจากด้านหลัง · ตีกระจกให้แตกเพื่อหนีออกไป</div>
+    </div>
+    <div class="front">
+      <div class="label">หน้ากระจก 0.90 × 2.10 ม.</div>
+      <canvas id="front" width="300" height="660" aria-label="มุมมองหน้ากระจก แตะเพื่อเลือกตำแหน่งแนวนอนที่จะชน"></canvas>
+      <div class="cap">แตะบนกระจกเพื่อเลือกตำแหน่งแนวนอน ความสูงที่ชนมาจากตำแหน่งวัตถุในมุมด้านข้าง</div>
+      <div class="cap">วงประ = จุดที่ชนแต่ไม่เหลือความเสียหาย (ของนิ่มอย่างไม้ทิ้งไว้แค่รอยถลอก) · วงแดง = มีรอยบิ่นหรือรอยร้าวสะสม</div>
+    </div>
+  </section>
+
+  <section class="controls">
+    <div class="box">
+      <div class="label">วัตถุ</div>
+      <div class="palette" id="palette"></div>
+      <div class="label">ด้านที่ใช้ชน</div>
+      <div class="chips" id="faces"></div>
+      <div class="cap" id="objhint"></div>
+    </div>
+    <div class="box">
+      <div class="label">กระจก</div>
+      <div class="row">
+        <select id="glassSel" aria-label="ชนิดและความหนากระจก">
+          <option value="annealed:6">กระจกธรรมดา (annealed) 6 มม.</option>
+          <option value="annealed:8">กระจกธรรมดา (annealed) 8 มม.</option>
+          <option value="annealed:10">กระจกธรรมดา (annealed) 10 มม.</option>
+          <option value="tempered:6">กระจกเทมเปอร์ 6 มม.</option>
+          <option value="tempered:8">กระจกเทมเปอร์ 8 มม.</option>
+          <option value="tempered:10" selected>กระจกเทมเปอร์ 10 มม.</option>
+          <option value="tempered:12">กระจกเทมเปอร์ 12 มม.</option>
+        </select>
+        <button class="btn primary" id="newGlass">ติดตั้งบานใหม่</button>
+      </div>
+      <div class="cap" id="glassInfo"></div>
+      <div>
+        <div class="label" style="margin-bottom:4px">ตำแหน่งแนวนอนที่เล็ง</div>
+        <input type="range" id="aim" min="2" max="98" value="50" aria-label="ตำแหน่งแนวนอนบนกระจก">
+        <div class="cap" id="aimTxt"></div>
+      </div>
+      <label class="chk"><input type="checkbox" id="reveal"> เผยค่าที่ซ่อนอยู่ของกระจกบานนี้</label>
+      <button class="btn" id="resetObj">ซ่อมวัตถุทั้งหมด</button>
+    </div>
+  </section>
+
+  <section class="box" aria-live="polite">
+    <div class="label">ผลการชนครั้งล่าสุด</div>
+    <div class="verdict" id="verdict">ลากวัตถุไปชนกระจกเพื่อเริ่ม</div>
+    <div class="readout" id="readout"></div>
+    <div id="dmgWrap" hidden>
+      <div class="cap" id="dmgTxt"></div>
+      <div class="meter"><i id="dmgBar"></i></div>
+    </div>
+  </section>
+
+  <section class="box">
+    <div class="label">บันทึกการชนของกระจกบานนี้</div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>#</th><th>วัตถุ / ด้าน</th><th>v (m/s)</th><th>E (J)</th><th>F สูงสุด (kN)</th><th>σ สูงสุด (MPa)</th><th>รอยร้าวสะสม</th><th>วัตถุ</th><th>กระจก</th><th>โอกาสแตกถ้าตีซ้ำแบบเดิม</th></tr></thead>
+        <tbody id="log"><tr><td colspan="10" class="cap">ยังไม่มีการชน</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="box cal">
+    <div class="label">เทียบกับการทดสอบมาตรฐาน (กระจกที่เลือก)</div>
+    <div class="cap">รันโมเดลเดียวกันกับตุ้มทดสอบมาตรฐาน 400 บาน เพื่อดูว่าผลสอดคล้องกับการทดสอบจริงแค่ไหน</div>
+    <div class="row"><button class="btn" id="runCal">รันการทดสอบมาตรฐาน</button></div>
+    <div class="tablewrap"><table><thead><tr><th>การทดสอบ</th><th>พลังงาน</th><th>โมเดล: แตก</th><th>ผลที่คาดจากการทดสอบจริง</th></tr></thead><tbody id="calBody"><tr><td colspan="4" class="cap">กดปุ่มเพื่อรัน</td></tr></tbody></table></div>
+  </section>
+
+  <section class="box notes">
+    <details>
+      <summary>โมเดลนี้คำนวณอะไร และส่วนไหนเป็นสมมติฐาน</summary>
+      <div class="notes">
+        <h3>การชน</h3>
+        <p>ทุกครั้งที่วัตถุแตะกระจก ระบบรันการจำลองการชนแยกเป็นช่วงเวลา 1 ไมโครวินาที วัตถุถูกแทนด้วยมวลปลาย ต่อกับมวลส่วนที่เหลือผ่านสปริงของโครงสร้าง (เก้าอี้มีโครงอ่อน โต๊ะไม้สักตันแข็ง) จุดสัมผัสใช้กฎ Hertz ร่วมกับการยุบตัวถาวรเมื่อแรงกดเกินกำลังรับแรงอัดของวัสดุ มุมไม้ที่ยุบแล้วจะทื่อขึ้นในการตีครั้งถัดไป กระจกตอบสนองสองแบบพร้อมกัน คือการโก่งทั้งบาน (โหมดแรกของแผ่นที่ยึดสี่ด้าน) และแรงต้านเฉพาะจุดของแผ่น (impedance 8√(Dρh)) ซึ่งเป็นตัวจำกัดแรงจากของเล็กที่ชนเร็ว</p>
+        <h3>การแตก</h3>
+        <ul>
+          <li>ความเค้นดัดใต้จุดชนใช้สูตรแผ่นรับแรงจุดของ Roark ร่วมกับรัศมีสัมผัสจริง</li>
+          <li>กำลังของกระจกแต่ละบานสุ่มจากการกระจายแบบ Weibull ให้ค่า 5% ล่างเท่ากับ 45 MPa ตาม EN 572 และรวมผลของขนาดพื้นที่รับแรง</li>
+          <li>เทมเปอร์มีแรงอัดผิวประมาณ 95 MPa (ASTM C1048 กำหนดอย่างน้อย 69 MPa) ลึกประมาณ 21% ของความหนา และอ่อนลงใกล้ขอบ</li>
+          <li>ของแข็ง (เหล็ก เซรามิก อะลูมิเนียม) สร้างรอยร้าวรูปกรวยเมื่อแรงเกินเกณฑ์ Auerbach ความลึกคำนวณจาก K = K<sub>IC</sub> = 0.75 MPa·√m หักแรงอัดผิว ถ้ารอยลึกทะลุชั้นอัด เทมเปอร์แตกทั้งบาน</li>
+          <li>รอยร้าวเดิมถูกตรวจทุกครั้งที่โดนแรงดัด ถ้า K ที่ปลายรอยถึง K<sub>IC</sub> กระจกแตก</li>
+        </ul>
+        <h3>ค่าที่ปรับเทียบหรือสมมติขึ้น</h3>
+        <ul>
+          <li>ตัวคูณลดความเค้นของการชนที่สั้นกว่า 1 มิลลิวินาที ปรับให้เทมเปอร์ 4–5 มม. ผ่านการทดสอบลูกเหล็ก 227 กรัม จาก 2 ม. ตาม ECE R43</li>
+          <li>การโตของรอยร้าวเมื่อตีจุดเดิมซ้ำ (บิ่นและล้าจากการสัมผัส) ใช้ 25% ของความลึกที่ครั้งนั้นสร้างได้ เป็นค่าสมมติ</li>
+          <li>มวลที่มีผล ความแข็งโครงสร้าง และกำลังยุบของวัตถุแต่ละชิ้นเป็นค่าประมาณทางวิศวกรรม ไม่ได้วัดจากของจริง</li>
+          <li>คนออกแรงลากได้สูงสุด 450 N ใส่พลังงานให้วัตถุได้ไม่เกิน 150 J และขยับมือได้ไม่เกิน 14 m/s</li>
+        </ul>
+        <h3>ข้อจำกัด</h3>
+        <p>เป็นการจำลอง 2 มิติ ไม่คิดการชนเฉียง การหมุนของวัตถุ หรือปลายแหลมมากอย่างหัวทุบกระจกฉุกเฉิน ผลจึงเป็นแนวโน้ม คลาดเคลื่อนได้หลายเท่าในรายกรณี ความน่าจะเป็นที่แสดงมาจากการสุ่มกำลังกระจกที่ยังสอดคล้องกับการชนทุกครั้งที่ผ่านมา</p>
+      </div>
+    </details>
+  </section>
+</div>
+
+<script>
+/*CORE*/
+/*OBJECTS*/
+</script>
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// ---------- world ----------
+const WORLD={w:4.4,h:2.7,doorX:3.72};
+const side=$('side'), sctx=side.getContext('2d');
+const front=$('front'), fctx=front.getContext('2d');
+let S=250; // px per metre (canvas pixels)
+function resize(){
+  const dpr=Math.min(2,window.devicePixelRatio||1);
+  const cw=side.clientWidth||900;
+  side.width=Math.round(cw*dpr); side.height=Math.round(cw*WORLD.h/WORLD.w*dpr);
+  S=side.width/WORLD.w;
+  const fw=front.clientWidth||200;
+  front.width=Math.round(fw*dpr); front.height=Math.round(fw*(PANEL.b+0.24)/(PANEL.a+0.24)*dpr);
+}
+const X=x=>x*S, Yp=y=>side.height-y*S;
+
+// ---------- glass state ----------
+let glass, hidden, history, broken, shards, glassHits, marks=[];
+function readGlass(){const [ty,t]=$('glassSel').value.split(':');return {type:ty,t:+t/1000};}
+function newGlass(){
+  const g=readGlass(); glass={type:g.type,t:g.t,flaws:[]}; marks=[]; hidden=sampleGlassStrength(g.type);
+  history=[]; broken=null; shards=[]; glassHits=0;
+  if(typeof fire!=='undefined'){fire.front=0.3;fire.parts=[];fire.smoke=[];}
+  $('alarm').textContent='ไฟลามมาจากด้านหลัง · ตีกระจกให้แตกเพื่อหนีออกไป'; $('alarm').classList.remove('safe');
+  $('log').innerHTML='<tr><td colspan="10" class="cap">ยังไม่มีการชน</td></tr>';
+  $('verdict').textContent='ติดตั้งกระจกบานใหม่แล้ว ลากวัตถุไปชนได้เลย';
+  $('readout').innerHTML=''; $('dmgWrap').hidden=true;
+  const ch=g.type==='tempered'?'กำลังรับแรงดัดตามมาตรฐาน EN 12150: 120 MPa (ค่า 5% ล่าง)':'กำลังรับแรงดัดตามมาตรฐาน EN 572: 45 MPa (ค่า 5% ล่าง)';
+  $('glassInfo').textContent=ch+' · กำลังจริงของบานนี้ถูกสุ่มและซ่อนไว้';
+  calDirty();
+}
+
+// ---------- objects ----------
+const objs={}; let cur=null;
+function faceOf(o){return o.def.faces[o.fi];}
+function pose(o){
+  const f=faceOf(o).id, d=o.def;
+  switch(f){
+    case 'teak-leg': return {w:0.75,h:1.2,sx:0.75,sy:1.175};
+    case 'chair-caster': return {w:0.65,h:1.0,sx:0.65,sy:0.03};
+    case 'chair-back': return {w:0.65,h:1.0,sx:0.65,sy:0.78};
+    case 'ext-side': return {w:0.17,h:0.55,sx:0.17,sy:0.3};
+    case 'ext-rim': return {w:0.55,h:0.17,sx:0.55,sy:0.085};
+    default: return {w:d.w,h:d.h,sx:d.w,sy:d.h};
+  }
+}
+function spawn(def){
+  if(!objs[def.id]) objs[def.id]={def,fi:0,x:1.1,y:0,vx:0,vy:0,held:false,st:{},destroyed:false,lastHit:-9,frags:[]};
+  const o=objs[def.id]; cur=o;
+  if(o.destroyed){o.destroyed=false;o.st={};o.frags=[];}
+  const p=pose(o); o.x=Math.min(o.x,WORLD.doorX-p.w-0.3); if(o.x<0.1)o.x=0.6; o.y=0; o.vx=o.vy=0;
+  renderPalette(); renderFaces();
+}
+function renderPalette(){
+  $('palette').innerHTML=OBJECTS.map(d=>`<button class="obj" data-id="${d.id}" aria-pressed="${cur&&cur.def.id===d.id}"><span class="n">${d.name}</span><span class="m">${d.mass} kg · สูงสุด ~${vMaxFor(d.mass).toFixed(1)} m/s</span></button>`).join('');
+  $('palette').querySelectorAll('.obj').forEach(b=>b.onclick=()=>spawn(OBJECTS.find(d=>d.id===b.dataset.id)));
+}
+function renderFaces(){
+  if(!cur){$('faces').innerHTML='';return;}
+  $('faces').innerHTML=cur.def.faces.map((f,i)=>`<button class="chip" data-i="${i}" aria-pressed="${i===cur.fi}">${f.label}</button>`).join('');
+  $('faces').querySelectorAll('.chip').forEach(b=>b.onclick=()=>{cur.fi=+b.dataset.i;const p=pose(cur);cur.x=Math.min(cur.x,WORLD.doorX-p.w-0.05);renderFaces();});
+  const st=cur.st; const bits=[];
+  if(st.crush) bits.push(`มุมยุบสะสม ${(st.crush*1000).toFixed(1)} มม.`);
+  if(st.casterBroken) bits.push('ล้อหักแล้ว ครั้งต่อไปฐานอะลูมิเนียมจะชนแทน');
+  $('objhint').textContent=bits.length?bits.join(' · '):'ลากวัตถุในมุมด้านข้าง ยิ่งลากเร็วยิ่งชนแรง แต่ไม่เกินขีดของคน';
+}
+
+// ---------- input ----------
+let ptr={x:0,y:0,on:false,id:null};
+function toWorld(e){const r=side.getBoundingClientRect();const sx=side.width/r.width;return {x:(e.clientX-r.left)*sx/S,y:(side.height-(e.clientY-r.top)*sx)/S};}
+side.addEventListener('pointerdown',e=>{
+  if(!cur||cur.destroyed)return; const w=toWorld(e); const p=pose(cur);
+  const pad=0.12;
+  if(w.x>cur.x-pad&&w.x<cur.x+p.w+pad&&w.y>cur.y-pad&&w.y<cur.y+p.h+pad){
+    cur.held=true; cur.gdx=w.x-cur.x; cur.gdy=w.y-cur.y; ptr={...w,on:true}; side.setPointerCapture(e.pointerId); side.classList.add('grabbing'); e.preventDefault();
+  }
+});
+side.addEventListener('pointermove',e=>{const w=toWorld(e);ptr.x=w.x;ptr.y=w.y;});
+const release=()=>{if(cur)cur.held=false;ptr.on=false;side.classList.remove('grabbing');};
+side.addEventListener('pointerup',release); side.addEventListener('pointercancel',release);
+function setAimFromFront(e){const r=front.getBoundingClientRect();const fx=(e.clientX-r.left)/r.width;const m=0.12/(PANEL.a+0.24);let u=(fx-m)/(1-2*m);u=Math.max(0.02,Math.min(0.98,u));$('aim').value=Math.round(u*100);aimText();}
+front.addEventListener('pointerdown',e=>{setAimFromFront(e);front.setPointerCapture(e.pointerId);});
+front.addEventListener('pointermove',e=>{if(e.buttons)setAimFromFront(e);});
+function aimU(){return +$('aim').value/100;}
+function aimText(){const u=aimU();const d=Math.min(u,1-u)*PANEL.a*100;$('aimTxt').textContent=`ห่างขอบข้างที่ใกล้ที่สุด ${d.toFixed(0)} ซม.`+(d<8?' · ใกล้ขอบ: แรงอัดผิวของเทมเปอร์ลดลง':'');}
+$('aim').addEventListener('input',aimText);
+
+// ---------- physics loop ----------
+let simT=0;
+// ---------- fire (behind the player, spreading toward the door) ----------
+const fire={front:0.3,max:0.8,rate:0.004,parts:[],smoke:[],acc:0,sacc:0};
+function fireStep(dt){
+  if(!broken) fire.front=Math.min(fire.max,fire.front+fire.rate*dt);
+  fire.acc+=dt*(reduceMotion?0:220*(fire.front+0.35));
+  while(fire.acc>1){fire.acc--;
+    const x=-0.25+Math.random()*(fire.front+0.25), edge=Math.max(0,1-Math.max(0,x)/fire.front);
+    fire.parts.push({x,y:Math.random()*0.08,vx:(Math.random()-0.4)*0.3,vy:0.9+Math.random()*1.6*(0.35+edge),life:0,max:0.45+Math.random()*0.8*(0.35+edge),r:0.07+Math.random()*0.16*(0.35+edge)});}
+  fire.sacc+=dt*(reduceMotion?0:7);
+  while(fire.sacc>1){fire.sacc--;fire.smoke.push({x:Math.random()*fire.front,y:1.0+Math.random()*0.6,vx:0.15+Math.random()*0.3,vy:0.35+Math.random()*0.3,life:0,max:5+Math.random()*4,r:0.15+Math.random()*0.2});}
+  for(const q of fire.parts){q.life+=dt;q.vy+=1.2*dt;q.vx+=(Math.random()-0.5)*1.5*dt;q.x+=q.vx*dt;q.y+=q.vy*dt;q.r*=1-0.6*dt;}
+  fire.parts=fire.parts.filter(q=>q.life<q.max);
+  for(const q of fire.smoke){q.life+=dt;q.x+=q.vx*dt;q.y=Math.min(WORLD.h-0.1,q.y+q.vy*dt);q.r+=0.12*dt;}
+  fire.smoke=fire.smoke.filter(q=>q.life<q.max&&q.x<fire.front+1.0);
+}
+function drawFire(c){
+  const fr=X(fire.front);
+  // heat haze / soot backdrop
+  let g=c.createLinearGradient(0,0,fr+S*0.9,0);
+  g.addColorStop(0,'rgba(40,18,10,0.55)'); g.addColorStop(0.5,'rgba(60,30,15,0.25)'); g.addColorStop(1,'rgba(60,30,15,0)');
+  c.fillStyle=g; c.fillRect(0,0,fr+S*0.9,Yp(0));
+  // floor glow
+  const gy=Yp(0.25); g=c.createRadialGradient(fr*0.4,gy,0,fr*0.4,gy,S*1.6);
+  g.addColorStop(0,'rgba(255,140,40,0.55)'); g.addColorStop(0.45,'rgba(255,90,20,0.18)'); g.addColorStop(1,'rgba(255,60,10,0)');
+  c.fillStyle=g; c.fillRect(0,0,fr+S*1.8,side.height);
+  // smoke under the ceiling
+  for(const q of fire.smoke){const a=0.16*Math.sin(Math.PI*q.life/q.max)*Math.max(0,1-(q.x-fire.front)/1.0);const R=q.r*S;const sg=c.createRadialGradient(X(q.x),Yp(q.y),0,X(q.x),Yp(q.y),R);sg.addColorStop(0,`rgba(50,46,44,${a.toFixed(3)})`);sg.addColorStop(1,'rgba(50,46,44,0)');c.fillStyle=sg;c.beginPath();c.arc(X(q.x),Yp(q.y),R,0,7);c.fill();}
+  // flame underlay so additive colors read on a light background
+  for(const q of fire.parts){const k=q.life/q.max;if(k>0.7)continue;const R=q.r*S*1.15;c.fillStyle=`rgba(170,40,10,${(0.10*(1-k)).toFixed(3)})`;c.beginPath();c.arc(X(q.x),Yp(q.y),R,0,7);c.fill();}
+  // flames (additive)
+  c.save(); c.globalCompositeOperation='lighter';
+  const draw=q=>{const k=q.life/q.max; const rr=Math.max(1,q.r*S*(1-k*0.5));
+    const col=k<0.25?[255,235,170]:k<0.55?[255,160,40]:[230,70,20];
+    const a=(k<0.1?k/0.1:1-k)*0.85;
+    const gg=c.createRadialGradient(X(q.x),Yp(q.y),0,X(q.x),Yp(q.y),rr);
+    gg.addColorStop(0,`rgba(${col[0]},${col[1]},${col[2]},${a.toFixed(3)})`); gg.addColorStop(1,`rgba(${col[0]},${col[1]},${col[2]},0)`);
+    c.fillStyle=gg; c.beginPath(); c.arc(X(q.x),Yp(q.y),rr,0,7); c.fill();};
+  if(reduceMotion){ // static flame bed
+    for(let i=0;i<60;i++){const x=(i/60)*fire.front, h=0.2+0.9*Math.abs(Math.sin(i*1.7));draw({x,y:h*0.4,life:0.35,max:1,r:0.18});draw({x,y:0.08,life:0.15,max:1,r:0.14});}
+  } else fire.parts.forEach(draw);
+  c.restore();
+}
+function step(dt){
+  simT+=dt;
+  fireStep(dt);
+  for(const o of Object.values(objs)){
+    if(o.destroyed){o.frags.forEach(f=>{f.vy-=9.81*dt;f.x+=f.vx*dt;f.y+=f.vy*dt;if(f.y<0){f.y=0;f.vy*=-0.2;f.vx*=0.6;}});continue;}
+    const m=o.def.mass, p=pose(o), vmax=vMaxFor(m);
+    if(o.held&&o===cur){
+      const tx=ptr.x-o.gdx, ty=ptr.y-o.gdy, om=30;
+      let fx=m*om*om*(tx-o.x)-2*m*om*o.vx, fy=m*om*om*(ty-o.y)-2*m*om*o.vy;
+      const fm=Math.hypot(fx,fy), cap=HUMAN.Fmax+m*0; if(fm>cap){fx*=cap/fm;fy*=cap/fm;}
+      o.vx+=fx/m*dt; o.vy+=fy/m*dt;
+      const sp=Math.hypot(o.vx,o.vy); if(sp>vmax){o.vx*=vmax/sp;o.vy*=vmax/sp;}
+    } else {
+      o.vy-=9.81*dt;
+      if(o.y<=0.0001&&o.vy<=0){const fr=4*dt;o.vx=Math.abs(o.vx)<fr?0:o.vx-Math.sign(o.vx)*fr;}
+    }
+    const prevSx=o.x+p.sx;
+    o.x+=o.vx*dt; o.y+=o.vy*dt;
+    if(o.y<0){o.y=0;if(o.vy<0)o.vy=-o.vy*0.15;if(Math.abs(o.vy)<0.3)o.vy=0;}
+    if(o.x<0){o.x=0;o.vx=Math.abs(o.vx)*0.2;}
+    if(o.y+p.h>WORLD.h){o.y=WORLD.h-p.h;o.vy=Math.min(0,o.vy);}
+    // door plane
+    const sxw=o.x+p.sx, syw=o.y+p.sy;
+    if(!broken&&prevSx<=WORLD.doorX&&sxw>WORLD.doorX){
+      o.x=WORLD.doorX-p.sx-0.0005;
+      if(o.vx>0.2&&simT-o.lastHit>0.2){impact(o,syw);} else {o.vx=Math.min(0,o.vx);}
+    }
+    if(broken&&o.x>WORLD.w)o.x=WORLD.w-0.01;
+  }
+  shards.forEach(s=>{s.vy-=9.81*dt;s.y+=s.vy*dt;s.x+=s.vx*dt;s.rot+=s.vr*dt;if(s.y<0.02){s.y=0.02;s.vy=0;s.vx*=0.8;s.vr=0;}});
+}
+
+// ---------- impact ----------
+function impact(o,ys){
+  o.lastHit=simT;
+  const v=(ys-PANEL.y0)/PANEL.b, u=aimU();
+  const face=faceOf(o);
+  const v0=o.vx;
+  if(v<0.01||v>0.99){ // frame
+    o.vx=-0.25*v0;
+    logRow({name:o.def.name,face:face.label,v0,E:0.5*o.def.mass*o.def.feff*v0*v0,frame:true});
+    setVerdict('ชนกรอบประตู ไม่ใช่กระจก','warn','ยกให้จุดชนอยู่ในช่วงความสูงของกระจก');
+    return;
+  }
+  const spec=o.st.casterBroken?NEXT['chair-base']:face;
+  const stObj=o.st.casterBroken?(o.st.sub||(o.st.sub={})):o.st;
+  const me=o.def.mass*o.def.feff;
+  const args={me,v0,spec,next:NEXT,glass,u,v};
+  const pre=JSON.parse(JSON.stringify(stObj));
+  const r=simulateImpact(Object.assign({},args,{objState:stObj,hidden}));
+  if(r.switched)o.st.casterBroken=true;
+  glassHits++;
+  marks.push({u,v,n:glassHits,col:o.def.color,dmg:r.coneDepth>0,soft:!spec.hard});
+  history.push({sigMax:r.sigMax,dEdge:r.dEdge,sizeF:r.sizeF});
+  let pNext=null;
+  if(!r.glassBroken&&!r.destroyed){
+    const nspec=o.st.casterBroken?NEXT['chair-base']:face;
+    const nst=o.st.casterBroken?(o.st.sub||{}):o.st;
+    pNext=predictBreak({me,v0,spec:nspec,next:NEXT,glass,u,v,objState:nst},history,3000);
+  }
+  if(r.destroyed){o.destroyed=true;makeFrags(o);}
+  if(r.glassBroken){
+    broken={u,v,type:glass.type,t:simT,seed:Math.random()*1e9};
+    $('alarm').textContent=`ทางออกเปิดแล้ว · ใช้ ${glassHits} ครั้ง`; $('alarm').classList.add('safe');
+    makeShards(); o.vx=v0*0.45;
+  } else {
+    o.vx=Math.min(r.vOut,-0.05*v0); if(o.held)o.vx*=0.6;
+  }
+  showResult(o,face,spec,r,pNext);
+  renderFaces();
+}
+function makeFrags(o){const p=pose(o);o.frags=[];for(let i=0;i<9;i++)o.frags.push({x:o.x+p.w*Math.random(),y:o.y+p.h*Math.random(),vx:-1-Math.random()*2,vy:Math.random()*2,s:0.01+Math.random()*0.02});}
+function makeShards(){
+  shards=[];
+  const n=broken.type==='tempered'?70:22;
+  for(let i=0;i<n;i++){const y=PANEL.y0+Math.random()*PANEL.b;shards.push({x:WORLD.doorX+(Math.random()-0.3)*0.05,y,vx:(Math.random()*0.8+0.1)*(Math.random()<0.7?1:-1),vy:Math.random()*0.5,rot:0,vr:(Math.random()-0.5)*6,len:broken.type==='tempered'?0.015+Math.random()*0.01:0.06+Math.random()*0.18});}
+  if(reduceMotion)shards.forEach(s=>{s.y=0.02;s.vy=0;});
+}
+
+// ---------- readouts ----------
+const fmt=(x,d=1)=>Number.isFinite(x)?x.toFixed(d):'–';
+function setVerdict(txt,cls,sub){$('verdict').innerHTML=`<span class="${cls}">${txt}</span>`+(sub?`<span class="pill ${cls}">${sub}</span>`:'');}
+function showResult(o,face,spec,r,pNext){
+  const t=glass.t, dc=0.21*t, tempered=glass.type==='tempered';
+  const maxFlaw=glass.flaws.reduce((a,f)=>Math.max(a,f.c),0);
+  if(r.glassBroken) setVerdict(tempered?'กระจกแตกทั้งบาน':'กระจกแตก','crit',r.breakCause);
+  else if(r.destroyed) setVerdict(`${o.def.name}แตก กระจกยังอยู่`,'warn',r.coneDepth>0?'กระจกมีรอยบิ่นที่จุดชน':'กระจกไม่เสียหาย');
+  else {
+    const pc=pNext&&pNext.p!=null?pNext.p:0;
+    setVerdict('กระจกยังไม่แตก',pc>0.5?'warn':'ok', r.coneDepth>0?(tempered?'มีรอยตำหนิซ่อนอยู่ใต้ผิว':'มีรอยบิ่นและรอยร้าวเล็กที่จุดชน'):'ไม่มีความเสียหายที่สะสม');
+  }
+  const objState=r.destroyed?'แตก':r.switched?'ล้อหัก':r.crushAdd>0.0005?`ยุบ ${fmt(r.crushAdd*1000)} มม.`:'ปกติ';
+  const charS=tempered?120:45;
+  const items=[
+    ['วัตถุที่ชน',spec.label],
+    ['ความเร็วชน',fmt(r.v0,2)+' m/s'],
+    ['พลังงานจลน์ (มวลที่มีผล)',fmt(r.Ein,0)+' J'],
+    ['แรงปะทะสูงสุด',fmt(r.Fmax/1000,2)+' kN'],
+    ['เวลาสัมผัส',fmt(r.contactTime*1000,1)+' ms'],
+    ['กระจกโก่งสูงสุด',fmt(r.wmax*1000,1)+' มม.'],
+    ['ความเค้นดัดสูงสุด',fmt(r.sigMax/1e6,0)+' MPa'],
+    ['เทียบค่ามาตรฐาน',fmt(r.sigMax/1e6/charS*100,0)+'% ของ '+charS+' MPa'],
+    ['พลังงานที่วัตถุดูดซับ',fmt(r.Eabs,0)+' J'],
+    ['สภาพวัตถุ',objState],
+  ];
+  if(!r.glassBroken&&pNext&&pNext.p!=null) items.push(['โอกาสแตกถ้าตีซ้ำแบบเดิม',fmt(pNext.p*100,0)+'%']);
+  if($('reveal').checked){
+    items.push(['กำลังจริงของบานนี้',fmt((hidden.sf0*r.sizeF+(tempered?hidden.sc:0))/1e6,0)+' MPa']);
+    items.push(['ใช้กำลังจริงไป',fmt(r.strengthRatio*100,0)+'%']);
+  }
+  $('readout').innerHTML=items.map(([k,v])=>`<div class="kv"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('');
+  if(maxFlaw>0){
+    $('dmgWrap').hidden=false;
+    const lim=tempered?dc:0.8*t;
+    $('dmgTxt').textContent=tempered
+      ?`รอยตำหนิลึกที่สุด ${fmt(maxFlaw*1000,2)} มม. จากชั้นผิวอัดแรงลึก ${fmt(dc*1000,1)} มม. ถ้าทะลุชั้นนี้ กระจกแตกทั้งบานทันที`
+      :`รอยร้าวลึกที่สุด ${fmt(maxFlaw*1000,2)} มม. ของความหนา ${fmt(t*1000,0)} มม. รอยยิ่งลึก กระจกยิ่งรับแรงดัดได้น้อยลง`;
+    if(r.coneSingle&&!r.glassBroken&&maxFlaw<lim){const n=Math.ceil((lim-maxFlaw)/(G.fatigue*r.coneSingle));$('dmgTxt').textContent+=` · ถ้าตีจุดเดิมแรงเท่าครั้งนี้ต่อไป ประมาณ ${n} ครั้งรอยจะ${tempered?'ทะลุชั้นอัดแรง':'ลึกจนกระจกแตก'} (ค่าประมาณ มีความผันแปร)`;}
+    $('dmgBar').style.width=Math.min(100,maxFlaw/lim*100)+'%';
+    $('dmgBar').style.background=maxFlaw/lim>0.75?css('--crit'):css('--warn');
+  } else $('dmgWrap').hidden=true;
+  const maxF=maxFlaw;
+  logRow({name:o.def.name,face:spec.label,v0:r.v0,E:r.Ein,F:r.Fmax,sig:r.sigMax,flaw:maxF,obj:objState,broken:r.glassBroken,p:pNext&&pNext.p});
+}
+function logRow(d){
+  const tb=$('log'); if(tb.querySelector('td[colspan]'))tb.innerHTML='';
+  const n=tb.children.length+1;
+  const glassTxt=d.frame?'<span class="warn">ชนกรอบ</span>':d.broken?'<span class="crit">แตก</span>':'<span class="ok">ไม่แตก</span>';
+  tb.insertAdjacentHTML('beforeend',`<tr><td>${n}</td><td>${d.name}<br><span class="cap">${d.face}</span></td><td class="mono">${fmt(d.v0,2)}</td><td class="mono">${fmt(d.E,0)}</td><td class="mono">${d.frame?'–':fmt(d.F/1000,2)}</td><td class="mono">${d.frame?'–':fmt(d.sig/1e6,0)}</td><td class="mono">${d.flaw?fmt(d.flaw*1000,2)+' มม.':'–'}</td><td>${d.obj||'–'}</td><td>${glassTxt}</td><td class="mono">${d.p!=null&&!d.broken&&!d.frame?fmt(d.p*100,0)+'%':'–'}</td></tr>`);
+}
+
+// ---------- drawing ----------
+function rr(c,x,y,w,h,r){c.beginPath();c.roundRect?c.roundRect(x,y,w,h,r):c.rect(x,y,w,h);}
+function drawObj(c,o){
+  const p=pose(o), f=faceOf(o).id, col=o.def.color, x0=X(o.x), y0=Yp(o.y), W=p.w*S, H=p.h*S;
+  c.save(); c.translate(x0,y0); // origin bottom-left, y up = negative
+  c.fillStyle=col; c.strokeStyle=css('--ink'); c.lineWidth=Math.max(1,S*0.004);
+  const crush=(o.st.crush||0)*S;
+  if(f==='teak-corner'||f==='mdf-corner'||f==='ply-corner'){
+    const top=0.045*S;
+    c.beginPath(); c.moveTo(0,-H); c.lineTo(W-crush,-H); c.lineTo(W,-H+crush); c.lineTo(W,-H+top); c.lineTo(0,-H+top); c.closePath(); c.fill(); c.stroke();
+    c.fillRect(0.06*S,-H+top,0.05*S,H-top); c.fillRect(W-0.11*S,-H+top,0.05*S,H-top);
+    c.fillRect(0.06*S,-H+top+0.08*S,W-0.12*S,0.03*S);
+  } else if(f==='teak-leg'){
+    const top=0.045*S;
+    c.fillRect(0,-H,top,H); c.strokeRect(0,-H,top,H);
+    c.fillRect(top,-H+0.06*S,W-top-crush,0.05*S); c.fillRect(top,-0.11*S,W-top,0.05*S);
+    c.fillRect(top+0.08*S,-H+0.06*S,0.03*S,H-0.12*S);
+  } else if(f==='chair-caster'||f==='chair-back'){
+    const flip=f==='chair-back';
+    if(flip){c.translate(W,0);c.scale(-1,1);}
+    c.fillStyle=col;
+    c.fillRect(0.05*S,-0.52*S,0.48*S,0.07*S); // seat
+    c.fillRect(0.02*S,-0.98*S,0.07*S,0.5*S); // back
+    c.fillRect(0.27*S,-0.45*S,0.04*S,0.33*S); // gas lift
+    c.fillRect(0.02*S,-0.12*S,W-0.04*S,0.04*S); // base
+    c.fillStyle=o.st.casterBroken?css('--crit'):css('--muted');
+    for(const xx of [0.04,W/S-0.04]){c.beginPath();c.arc(xx*S,-0.04*S,0.035*S,0,7);c.fill();}
+  } else if(f==='ext-rim'){
+    rr(c,0,-H,W*0.9,H,0.06*S); c.fill(); c.fillStyle=css('--ink'); c.fillRect(W*0.9,-H*0.92,W*0.1,H*0.84);
+    c.fillStyle=css('--muted'); c.fillRect(-0.06*S,-H*0.65,0.07*S,0.04*S);
+  } else if(f==='ext-side'){
+    rr(c,0,-H*0.9,W,H*0.9,0.06*S); c.fill(); c.fillStyle=css('--ink'); c.fillRect(W*0.3,-H,W*0.4,H*0.1);
+  } else if(f==='mug-rim'){
+    c.fillStyle=col; rr(c,0.015*S,-H,W-0.015*S,H,0.01*S); c.fill(); c.stroke();
+    c.beginPath(); c.arc(0.015*S,-H*0.5,0.025*S,Math.PI/2,Math.PI*1.5); c.stroke();
+  } else {
+    c.fillStyle=col; c.fillRect(0,-H,W,H); c.strokeRect(0,-H,W,H);
+  }
+  c.restore();
+  // strike point marker
+  c.fillStyle=css('--crit'); c.beginPath(); c.arc(X(o.x+p.sx),Yp(o.y+p.sy),Math.max(3,S*0.012),0,7); c.fill();
+}
+function drawSide(){
+  const c=sctx; c.clearRect(0,0,side.width,side.height);
+  c.fillStyle=css('--panel'); c.fillRect(0,0,side.width,side.height);
+  // floor
+  c.fillStyle=css('--floor'); c.fillRect(0,Yp(0),side.width,side.height-Yp(0)+1);
+  c.fillRect(0,Yp(0)-2,side.width,2);
+  drawFire(c);
+  // scale ticks
+  c.fillStyle=css('--muted'); c.font=`${Math.round(S*0.045)}px ${css('--f-mono')}`;
+  for(let m=0;m<=2;m++){const tx=X(WORLD.doorX-0.42);c.fillRect(tx,Yp(m),S*0.04,1.5);c.fillText(m+' ม.',tx+S*0.05,Yp(m)-3);}
+  // door
+  const dx=X(WORLD.doorX), th=Math.max(6,glass.t*S*2.5);
+  c.fillStyle=css('--frame'); c.fillRect(dx-S*0.02,Yp(PANEL.y0),S*0.04+th,S*0.04); c.fillRect(dx-S*0.02,Yp(PANEL.y0+PANEL.b)-S*0.04,S*0.04+th,S*0.04);
+  c.fillRect(dx-S*0.02,Yp(WORLD.h),S*0.04+th,Yp(PANEL.y0+PANEL.b)-Yp(WORLD.h)-S*0.04);
+  if(!broken){c.fillStyle=css('--glass');c.fillRect(dx,Yp(PANEL.y0+PANEL.b),th,PANEL.b*S);c.fillStyle=css('--glass-edge');c.fillRect(dx,Yp(PANEL.y0+PANEL.b),1.5,PANEL.b*S);}
+  // shards
+  c.fillStyle=css('--glass-edge');
+  shards.forEach(s=>{c.save();c.translate(X(s.x),Yp(s.y));c.rotate(s.rot);c.fillRect(-1,-s.len*S/2,Math.max(2,th*0.7),s.len*S);c.restore();});
+  // objects
+  for(const o of Object.values(objs)){
+    if(o!==cur)continue;
+    if(o.destroyed){c.fillStyle=o.def.color;c.strokeStyle=css('--ink');o.frags.forEach(f=>{c.fillRect(X(f.x),Yp(f.y)-f.s*S,f.s*S,f.s*S);c.strokeRect(X(f.x),Yp(f.y)-f.s*S,f.s*S,f.s*S);});continue;}
+    drawObj(c,o);
+  }
+  // HUD
+  if(cur&&!cur.destroyed){
+    const sp=Math.hypot(cur.vx,cur.vy), p=pose(cur), m=cur.def.mass*cur.def.feff;
+    $('hud').innerHTML=`<span>${cur.def.name}</span><span>ความเร็ว <b>${sp.toFixed(2)}</b> / ${vMaxFor(cur.def.mass).toFixed(1)} m/s</span><span>พลังงาน <b>${(0.5*m*cur.vx*cur.vx).toFixed(0)}</b> J (แนวตั้งฉากกระจก)</span><span>ความสูงจุดชน <b>${(cur.y+p.sy).toFixed(2)}</b> ม.</span>`;
+  } else $('hud').innerHTML=cur?`<span>${cur.def.name}แตกแล้ว เลือกวัตถุใหม่</span>`:'<span>เลือกวัตถุด้านล่าง</span>';
+}
+// deterministic rng for crack drawing
+function rng(seed){let s=seed>>>0||1;return()=>{s^=s<<13;s^=s>>>17;s^=s<<5;return ((s>>>0)%100000)/100000;};}
+function drawFront(){
+  const c=fctx, Wc=front.width, Hc=front.height;
+  const sc=Wc/(PANEL.a+0.24), ox=0.12*sc, oy=0.12*sc;
+  const gx=u=>ox+u*PANEL.a*sc, gy=v=>oy+(1-v)*PANEL.b*sc;
+  c.clearRect(0,0,Wc,Hc); c.fillStyle=css('--panel'); c.fillRect(0,0,Wc,Hc);
+  c.fillStyle=css('--frame'); c.fillRect(ox-0.05*sc,oy-0.05*sc,PANEL.a*sc+0.1*sc,PANEL.b*sc+0.1*sc);
+  c.fillStyle=css('--panel'); c.fillRect(ox,oy,PANEL.a*sc,PANEL.b*sc);
+  const t=glass.t, dc=0.21*t;
+  if(!broken){
+    c.fillStyle=css('--glass'); c.fillRect(ox,oy,PANEL.a*sc,PANEL.b*sc);
+    c.strokeStyle=css('--glass-edge'); c.globalAlpha=0.35; c.lineWidth=2;
+    c.beginPath(); c.moveTo(ox+PANEL.a*sc*0.15,oy+PANEL.b*sc*0.1); c.lineTo(ox+PANEL.a*sc*0.35,oy+PANEL.b*sc*0.02); c.stroke(); c.globalAlpha=1;
+  } else if(broken.type==='tempered'){
+    const R=rng(broken.seed); const tile=Math.max(4,sc*0.025);
+    const fall=reduceMotion?1:Math.min(1,(simT-broken.t)/1.2);
+    c.save(); c.beginPath(); c.rect(ox,oy,PANEL.a*sc,PANEL.b*sc); c.clip();
+    c.fillStyle=css('--glass'); c.strokeStyle=css('--crack'); c.lineWidth=0.7;
+    for(let y=oy;y<oy+PANEL.b*sc;y+=tile)for(let x=ox;x<ox+PANEL.a*sc;x+=tile){
+      const r=R(); const yy=y+fall*fall*(R()*0.5+0.5)*PANEL.b*sc*1.1*(r<0.85?1:0);
+      if(r<0.85&&yy>oy+PANEL.b*sc)continue;
+      c.beginPath(); c.moveTo(x+R()*2,yy+R()*2); c.lineTo(x+tile-R()*2,yy+R()*2); c.lineTo(x+tile-R()*2,yy+tile-R()*2); c.lineTo(x+R()*2,yy+tile-R()*2); c.closePath(); c.globalAlpha=0.8; c.fill(); c.globalAlpha=1; c.stroke();
+    }
+    c.restore();
+  } else {
+    const R=rng(broken.seed); const cx=gx(broken.u), cy=gy(broken.v);
+    c.fillStyle=css('--glass'); c.globalAlpha=0.5; c.fillRect(ox,oy,PANEL.a*sc,PANEL.b*sc*0.25); c.globalAlpha=1;
+    c.strokeStyle=css('--crack'); c.lineWidth=1.2;
+    const n=10; for(let i=0;i<n;i++){const a=i/n*Math.PI*2+R()*0.4;let x=cx,y=cy;c.beginPath();c.moveTo(x,y);for(let k=0;k<10;k++){x+=Math.cos(a+(R()-0.5)*0.4)*sc*0.12;y+=Math.sin(a+(R()-0.5)*0.4)*sc*0.12;c.lineTo(x,y);}c.stroke();}
+  }
+  // flaws
+  if(!broken) glass.flaws.forEach(f=>{
+    const x=gx(f.u), y=gy(f.v);
+    if(glass.type==='annealed'){
+      const L=Math.min(0.12,f.c*45)*sc; const R=rng(Math.round(f.u*1e5+f.v*1e7));
+      c.strokeStyle=css('--crack'); c.lineWidth=1;
+      for(let i=0;i<6;i++){const a=R()*Math.PI*2;c.beginPath();c.moveTo(x,y);c.lineTo(x+Math.cos(a)*L*(0.5+R()),y+Math.sin(a)*L*(0.5+R()));c.stroke();}
+      c.beginPath();c.arc(x,y,Math.max(2,f.c*2500*sc/300),0,7);c.stroke();
+    } else {
+      c.fillStyle=css('--crack'); c.beginPath(); c.arc(x,y,Math.max(1.5,sc*0.004),0,7); c.fill();
+    }
+    if($('reveal').checked){
+      const ratio=glass.type==='tempered'?f.c/dc:f.c/(0.8*t);
+      c.strokeStyle=css('--hidden'); c.lineWidth=2; c.beginPath(); c.arc(x,y,sc*0.03,-Math.PI/2,-Math.PI/2+Math.PI*2*Math.min(1,ratio)); c.stroke();
+    }
+  });
+  // impact marks: every hit, cracked or not
+  const fs=Math.max(9,Math.round(sc*0.032));
+  c.font=`${fs}px ${css('--f-mono')}`; c.textBaseline='middle';
+  marks.forEach(m=>{
+    const x=gx(m.u), y=gy(m.v), R=Math.max(5,sc*0.022);
+    if(!broken){c.fillStyle=m.col; c.globalAlpha=m.soft?0.45:0.25; c.beginPath(); c.arc(x,y,R*0.7,0,7); c.fill(); c.globalAlpha=1;}
+    c.strokeStyle=m.dmg?css('--crit'):css('--ink'); c.lineWidth=1.2; c.setLineDash(m.dmg?[]:[2,2]);
+    c.beginPath(); c.arc(x,y,R,0,7); c.stroke(); c.setLineDash([]);
+    c.fillStyle=css('--ink'); c.fillText(String(m.n),x+R+2,y);
+  });
+  // aim crosshair
+  if(cur&&!cur.destroyed&&!broken){
+    const p=pose(cur); const v=(cur.y+p.sy-PANEL.y0)/PANEL.b;
+    const x=gx(aimU()); c.strokeStyle=css('--accent'); c.lineWidth=1.5; c.setLineDash([4,4]);
+    c.beginPath(); c.moveTo(x,oy); c.lineTo(x,oy+PANEL.b*sc); c.stroke(); c.setLineDash([]);
+    if(v>0&&v<1){const y=gy(v);c.beginPath();c.arc(x,y,6,0,7);c.stroke();c.beginPath();c.moveTo(x-10,y);c.lineTo(x+10,y);c.stroke();}
+  }
+}
+
+// ---------- calibration ----------
+function calDirty(){$('calBody').innerHTML='<tr><td colspan="4" class="cap">กดปุ่มเพื่อรัน</td></tr>';}
+$('runCal').onclick=()=>{
+  $('calBody').innerHTML='<tr><td colspan="4" class="cap">กำลังคำนวณ…</td></tr>';
+  setTimeout(()=>{
+    const g=readGlass(), tempered=g.type==='tempered', rows=[];
+    const ball={id:'ball',kind:'hertz',Eo:200e9,nuo:0.3,R:0.019,area:'sphere',pc:2e9,hard:true};
+    const tests=[
+      ['EN 12600 ตุ้มยาง 50 kg ปล่อย 190 มม.',50,Math.sqrt(2*9.81*0.19),EN12600,tempered?'ไม่แตก':'มักแตก'],
+      ['EN 12600 ตุ้มยาง 50 kg ปล่อย 450 มม.',50,Math.sqrt(2*9.81*0.45),EN12600,tempered?'ไม่แตก':'แตก'],
+      ['EN 12600 ตุ้มยาง 50 kg ปล่อย 1,200 มม.',50,Math.sqrt(2*9.81*1.2),EN12600,tempered?(g.t>=0.010?'ส่วนใหญ่ไม่แตก (แตกแบบปลอดภัยได้)':'อาจแตก (อนุญาตถ้าแตกแบบปลอดภัย)'):'แตก'],
+      ['ECE R43 ลูกเหล็ก 227 g ปล่อย 2 ม.',0.227,Math.sqrt(2*9.81*2),ball,tempered?'ไม่แตก (เกณฑ์ผ่าน)':'มักแตก']
+    ];
+    for(const [name,m,v,spec,expect] of tests){
+      const res=[]; let b=0; const N=400;
+      for(let i=0;i<N;i++){const r=simulateImpact({me:m,v0:v,spec,next:NEXT,objState:{},glass:{type:g.type,t:g.t,flaws:[]},hidden:sampleGlassStrength(g.type),u:0.5,v:0.5,dry:false});if(r.glassBroken)b++;}
+      rows.push(`<tr><td>${name}</td><td class="mono">${(0.5*m*v*v).toFixed(0)} J</td><td class="mono">${(b/N*100).toFixed(0)}%</td><td>${expect}</td></tr>`);
+    }
+    $('calBody').innerHTML=rows.join('');
+  },30);
+};
+
+// ---------- wiring ----------
+$('newGlass').onclick=newGlass;
+$('glassSel').onchange=newGlass;
+$('resetObj').onclick=()=>{for(const k in objs)delete objs[k];const id=cur?cur.def.id:'teak';cur=null;spawn(OBJECTS.find(d=>d.id===id));};
+$('reveal').onchange=()=>{};
+window.addEventListener('resize',resize);
+resize(); newGlass(); spawn(OBJECTS[0]); aimText();
+let last=performance.now();
+function frame(now){
+  let dt=Math.min(0.05,(now-last)/1000); last=now;
+  const n=Math.ceil(dt/(1/480)); for(let i=0;i<n;i++)step(dt/n);
+  drawSide(); drawFront();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+})();
+</script>
