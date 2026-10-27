@@ -25,6 +25,7 @@
   --frame:#6d7b82; --floor:#222c30; --ok:#5fbf86; --warn:#e0a84a; --crit:#ef6a5a;
   --crack:#d6eef1; --hidden:#ef6a5a; color-scheme:dark}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
 .wrap{max-width:1180px;margin:0 auto;display:grid;gap:18px}
@@ -114,6 +115,7 @@ details summary{cursor:pointer;font-family:var(--f-display);font-weight:600;font
     <div class="box">
       <div class="label">วัตถุ</div>
       <div class="palette" id="palette"></div>
+      <div class="row" id="variantWrap" hidden><label class="label" for="variantSel">น้ำหนัก</label><select id="variantSel" aria-label="น้ำหนัก"></select></div>
       <div class="label" id="facesLabel">ด้านที่ใช้ชน</div>
       <div class="chips" id="faces"></div>
       <div class="cap" id="objhint"></div>
@@ -244,7 +246,8 @@ function newGlass(){
 // ---------- objects ----------
 const objs={}; let cur=null;
 function faceOf(o){return o.def.faces[o.fi];}
-const massOf=o=>faceOf(o).mass??o.def.mass, feffOf=o=>faceOf(o).feff??o.def.feff;
+const varOf=o=>o.def.variants?o.def.variants[o.vi??o.def.vi??0]:null;
+const massOf=o=>varOf(o)?.mass??faceOf(o).mass??o.def.mass, feffOf=o=>faceOf(o).feff??o.def.feff;
 function pose(o){
   const f=faceOf(o).id, d=o.def;
   switch(f){
@@ -253,23 +256,25 @@ function pose(o){
     case 'chair-back': return {w:0.65,h:1.0,sx:0.65,sy:0.78};
     case 'ext-side': return {w:0.17,h:0.55,sx:0.17,sy:0.3};
     case 'ext-rim': return {w:0.55,h:0.17,sx:0.55,sy:0.085};
-    default: { const fc=faceOf(o), h=fc.h??d.h; return {w:d.w,h,sx:d.w*(fc.fx??1),sy:h*(fc.fy??1)}; }
+    default: { const fc=faceOf(o), vr=varOf(o), w=vr?.w??d.w, h=fc.h??vr?.h??d.h; return {w,h,sx:w*(fc.fx??1),sy:h*(fc.fy??1)}; }
   }
 }
 function spawn(def){
-  if(!objs[def.id]) objs[def.id]={def,fi:0,x:1.1,y:0,vx:0,vy:0,held:false,st:{},destroyed:false,lastHit:-9,frags:[]};
+  if(!objs[def.id]) objs[def.id]={def,fi:0,vi:def.vi??0,x:1.1,y:0,vx:0,vy:0,held:false,st:{},destroyed:false,lastHit:-9,frags:[]};
   const o=objs[def.id]; cur=o;
   if(o.destroyed){o.destroyed=false;o.st={};o.frags=[];}
   const p=pose(o); o.x=Math.min(o.x,WORLD.doorX-p.w-0.3); if(o.x<0.1)o.x=0.6; o.y=0; o.vx=o.vy=0;
   renderPalette(); renderFaces();
 }
 function renderPalette(){
-  $('palette').innerHTML=OBJECTS.map(d=>`<button class="obj" data-id="${d.id}" aria-pressed="${cur&&cur.def.id===d.id}"><span class="n">${d.name}</span><span class="m">${d.faces.some(f=>f.mass)?(d.faces.length+' ขนาด · '+d.faces[0].mass+'–'+d.faces.at(-1).mass+' kg'):(d.mass<1?Math.round(d.mass*1000)+' g':d.mass+' kg')+' · สูงสุด ~'+vMaxFor(d.mass,d.faces[0]).toFixed(1)+' m/s'}</span></button>`).join('');
+  $('palette').innerHTML=OBJECTS.map(d=>`<button class="obj" data-id="${d.id}" aria-pressed="${cur&&cur.def.id===d.id}"><span class="n">${d.name}</span><span class="m">${d.variants?(d.variants[0].label+'–'+d.variants.at(-1).label):d.faces.some(f=>f.mass)?(d.faces.length+' ขนาด · '+d.faces[0].mass+'–'+d.faces.at(-1).mass+' kg'):(d.mass<1?Math.round(d.mass*1000)+' g':d.mass+' kg')+' · สูงสุด ~'+vMaxFor(d.mass,d.faces[0]).toFixed(1)+' m/s'}</span></button>`).join('');
   $('palette').querySelectorAll('.obj').forEach(b=>b.onclick=()=>spawn(OBJECTS.find(d=>d.id===b.dataset.id)));
 }
 function renderFaces(){
   if(!cur){$('faces').innerHTML='';return;}
   $('facesLabel').textContent=cur.def.faces.some(f=>f.mass)?'จำนวนแผ่น (ชนด้วยมุมกอง)':'ด้านที่ใช้ชน';
+  $('variantWrap').hidden=!cur.def.variants;
+  if(cur.def.variants){const sel=$('variantSel'); sel.innerHTML=cur.def.variants.map((v,i)=>`<option value="${i}" ${i===cur.vi?'selected':''}>${v.label}</option>`).join(''); sel.onchange=()=>{cur.vi=+sel.value; cur.st={}; const pz=pose(cur); cur.x=Math.min(cur.x,WORLD.doorX-pz.w-0.05); renderFaces();};}
   $('faces').innerHTML=cur.def.faces.map((f,i)=>`<button class="chip" data-i="${i}" aria-pressed="${i===cur.fi}">${f.label}</button>`).join('');
   $('faces').querySelectorAll('.chip').forEach(b=>b.onclick=()=>{if(cur.def.faces[+b.dataset.i].mass&&+b.dataset.i!==cur.fi){cur.st={};} cur.fi=+b.dataset.i;const p=pose(cur);cur.x=Math.min(cur.x,WORLD.doorX-p.w-0.05);renderFaces();});
   const st=cur.st; const bits=[];
@@ -396,7 +401,7 @@ function impact(o,ys){
   const v0=o.vx;
   if(v<0.01||v>0.99){ // frame
     o.vx=-0.25*v0;
-    logRow({name:o.def.name,face:face.label,v0,E:0.5*massOf(o)*feffOf(o)*v0*v0,frame:true,u,v});
+    logRow({name:o.def.name+(varOf(o)?' '+varOf(o).label:''),face:face.label,v0,E:0.5*massOf(o)*feffOf(o)*v0*v0,frame:true,u,v});
     setVerdict('ชนกรอบประตู ไม่ใช่กระจก','warn','ยกให้จุดชนอยู่ในช่วงความสูงของกระจก');
     return;
   }
@@ -481,7 +486,7 @@ function showResult(o,face,spec,r,pNext,nearMM){
     $('dmgBar').style.background=maxFlaw/lim>0.75?css('--crit'):css('--warn');
   } else $('dmgWrap').hidden=true;
   const maxF=maxFlaw;
-  logRow({name:o.def.name,face:spec.label,v0:r.v0,E:r.Ein,F:r.Fmax,sig:r.sigMax,flaw:maxF,near:nearMM,u:lastUV.u,v:lastUV.v,obj:objState,broken:r.glassBroken,p:pNext&&pNext.p,pf:pNext&&pNext.pFresh});
+  logRow({name:o.def.name+(varOf(o)?' '+varOf(o).label:''),face:spec.label,v0:r.v0,E:r.Ein,F:r.Fmax,sig:r.sigMax,flaw:maxF,near:nearMM,u:lastUV.u,v:lastUV.v,obj:objState,broken:r.glassBroken,p:pNext&&pNext.p,pf:pNext&&pNext.pFresh});
 }
 function logRow(d){
   const tb=$('log'), wrap=$('logWrap'); const atBottom=wrap.scrollHeight-wrap.scrollTop-wrap.clientHeight<24; if(tb.querySelector('td[colspan]'))tb.innerHTML='';
@@ -512,6 +517,21 @@ function drawObj(c,o){
     if(wear>0||o.st.damaged){const n=1+Math.floor(wear*8); c.strokeStyle=css('--crit'); c.lineWidth=1;
       for(let i=0;i<n;i++){const x=(-0.4+0.8*((i*0.618)%1))*W; c.beginPath(); c.moveTo(x,-t/2+bend*W*0.2); c.lineTo(x+W*0.05,t/2+bend*W*0.2); c.stroke();}}
     c.restore();
+    c.restore(); markStrike(c,o,p); return;
+  }
+  if(shp==='dumbbell'){
+    const hd=W*0.8*H/(W) , headW=Math.min(W*0.4,0.8*H); const hw=Math.max(headW,4);
+    c.fillStyle=css('--muted'); c.fillRect(hw,-H*0.6,W-2*hw,H*0.2);
+    c.fillStyle=faceOf(o).id==='db-rubber'?'#1f2226':col;
+    for(const x0 of [0,W-hw]){ c.beginPath(); c.moveTo(x0,-H*0.25); c.lineTo(x0+hw*0.15,-H*0.03); c.lineTo(x0+hw*0.85,-H*0.03); c.lineTo(x0+hw,-H*0.25); c.lineTo(x0+hw,-H*0.75); c.lineTo(x0+hw*0.85,-H*0.97); c.lineTo(x0+hw*0.15,-H*0.97); c.lineTo(x0,-H*0.75); c.closePath(); c.fill(); c.stroke(); }
+    c.fillStyle=css('--panel'); c.font=`${Math.max(8,Math.round(H*0.28))}px ${css('--f-mono')}`; c.textAlign='center'; c.textBaseline='middle'; c.fillText(String(massOf(o)),hw/2,-H/2); c.textAlign='start';
+    c.restore(); markStrike(c,o,p); return;
+  }
+  if(shp==='squishy'){
+    c.fillStyle=col; c.beginPath(); c.ellipse(W/2,-H*0.45,W/2,H*0.45,0,0,7); c.fill(); c.stroke();
+    c.beginPath(); c.ellipse(W*0.28,-H*0.9,W*0.12,H*0.12,0,0,7); c.ellipse(W*0.72,-H*0.9,W*0.12,H*0.12,0,0,7); c.fill(); c.stroke();
+    c.fillStyle=css('--ink'); c.beginPath(); c.arc(W*0.38,-H*0.5,Math.max(1.5,W*0.04),0,7); c.arc(W*0.62,-H*0.5,Math.max(1.5,W*0.04),0,7); c.fill();
+    c.beginPath(); c.arc(W*0.5,-H*0.38,W*0.07,0.2,Math.PI-0.2); c.stroke();
     c.restore(); markStrike(c,o,p); return;
   }
   if(shp==='monitor'){

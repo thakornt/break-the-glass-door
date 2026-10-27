@@ -61,6 +61,16 @@ const OBJECTS = [
       { id: 'strip-corner', label: 'มุมรางปลั๊ก (ถือด้วยมือ)', kind: 'hertz', Eo: 2.4e9, nuo: 0.37, R: 0.004, area: 'corner', A0: 6e-6, g: 3, pc: 25e6, hard: false, wreckE: 60, stages: [[0.0001, 'มุมเคสถลอก'], [0.25, 'มุมเคสบิ่น'], [0.5, 'เคสร้าว ฝาเริ่มแยก'], [0.75, 'เคสแตก ฝาหลุดบางส่วน'], [1, 'เคสแตกกระจาย เห็นแผงทองแดงข้างใน']], mat: 'PC (เคสกลวง)', mtip: 0.15, ks: 3e6 },
       { id: 'strip-sling', label: 'มุมรางปลั๊ก (เหวี่ยงด้วยสายไฟ)', vMult: 1.6, kind: 'hertz', Eo: 2.4e9, nuo: 0.37, R: 0.004, area: 'corner', A0: 6e-6, g: 3, pc: 25e6, hard: false, wreckE: 60, stages: [[0.0001, 'มุมเคสถลอก'], [0.25, 'มุมเคสบิ่น'], [0.5, 'เคสร้าว ฝาเริ่มแยก'], [0.75, 'เคสแตก ฝาหลุดบางส่วน'], [1, 'เคสแตกกระจาย เห็นแผงทองแดงข้างใน']], mat: 'PC (เคสกลวง)', mtip: 0.15, ks: 3e6 }
     ] },
+  { id: 'dumbbell', name: 'ดัมบ์เบลล์', shape: 'dumbbell', mass: 10, feff: 0.95, w: 0.29, h: 0.1, color: '#3b3f45', vi: 9,
+    variants: [{ label: '1 kg', mass: 1, w: 0.197, h: 0.042 }, { label: '2 kg', mass: 2, w: 0.221, h: 0.057 }, { label: '3 kg', mass: 3, w: 0.236, h: 0.066 }, { label: '4 kg', mass: 4, w: 0.248, h: 0.074 }, { label: '5 kg', mass: 5, w: 0.258, h: 0.080 }, { label: '6 kg', mass: 6, w: 0.267, h: 0.085 }, { label: '7 kg', mass: 7, w: 0.274, h: 0.090 }, { label: '8 kg', mass: 8, w: 0.281, h: 0.095 }, { label: '9 kg', mass: 9, w: 0.288, h: 0.099 }, { label: '10 kg', mass: 10, w: 0.294, h: 0.102 }, { label: '11 kg', mass: 11, w: 0.299, h: 0.106 }, { label: '12 kg', mass: 12, w: 0.304, h: 0.109 }, { label: '13 kg', mass: 13, w: 0.309, h: 0.112 }, { label: '14 kg', mass: 14, w: 0.314, h: 0.115 }, { label: '15 kg', mass: 15, w: 0.318, h: 0.117 }, { label: '16 kg', mass: 16, w: 0.322, h: 0.120 }, { label: '17 kg', mass: 17, w: 0.326, h: 0.123 }, { label: '18 kg', mass: 18, w: 0.330, h: 0.125 }, { label: '19 kg', mass: 19, w: 0.334, h: 0.127 }, { label: '20 kg', mass: 20, w: 0.337, h: 0.130 }],
+    faces: [
+      { id: 'db-iron', label: 'ขอบหัวเหล็กหล่อ (หกเหลี่ยม)', fy: 0.85, kind: 'hertz', Eo: 170e9, nuo: 0.26, R: 0.003, area: 'sphere', pc: 1.0e9, hard: true, mat: 'เหล็กหล่อ' },
+      { id: 'db-rubber', label: 'หัวหุ้มยาง', fy: 0.85, kind: 'hertz', Eo: 0.2e9, nuo: 0.45, R: 0.03, area: 'sphere', pc: Infinity, hard: false, mat: 'ยาง (หุ้มเหล็ก)' }
+    ] },
+  { id: 'squishy', name: 'ตุ๊กตาสกุชชี่', shape: 'squishy', mass: 0.08, feff: 0.6, w: 0.11, h: 0.09, color: '#f3b6c8',
+    faces: [
+      { id: 'squishy-body', label: 'ตัวตุ๊กตา (โฟม PU คืนตัวช้า)', fy: 0.5, kind: 'linear', K: 2.5e3, rFixed: 0.045, area: 'fixed', pc: Infinity, hard: false, mat: 'โฟม PU' }
+    ] },
   // Phones: weight, size and frame material from manufacturer spec pages (Oct 2026)
   { id: 'ip18pro', name: 'iPhone 18 Pro', shape: 'phone', mass: 0.211, feff: 0.9, w: 0.150, h: 0.00875, color: '#9aa3ab',
     faces: [
