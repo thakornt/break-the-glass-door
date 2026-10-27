@@ -157,7 +157,7 @@ details summary{cursor:pointer;font-family:var(--f-display);font-weight:600;font
     <div class="label">บันทึกการชนของกระจกบานนี้</div>
     <div class="tablewrap logwrap" id="logWrap">
       <table>
-        <thead><tr><th>#</th><th>วัตถุ / ด้าน</th><th>v (m/s)</th><th>E (J)</th><th>F สูงสุด (kN)</th><th>σ สูงสุด (MPa)</th><th>ห่างรอยเดิม</th><th>รอยลึกสุด / ลึกที่ทำให้แตก</th><th>วัตถุ</th><th>กระจก</th><th>โอกาสแตกในครั้งถัดไป</th></tr></thead>
+        <thead><tr><th>#</th><th>วัตถุ / ด้าน</th><th>v (m/s)</th><th>E (J)</th><th>F สูงสุด (kN)</th><th>σ สูงสุด (MPa)</th><th>ห่างรอยเดิม</th><th>รอยลึกสุด / ลึกที่ทำให้แตก</th><th>วัตถุ</th><th>กระจก</th><th>แตกครั้งถัดไป: จุดเดิม / จุดใหม่</th></tr></thead>
         <tbody id="log"><tr><td colspan="11" class="cap">ยังไม่มีการชน</td></tr></tbody>
       </table>
     </div>
@@ -179,7 +179,7 @@ details summary{cursor:pointer;font-family:var(--f-display);font-weight:600;font
         <h3>การแตก</h3>
         <ul>
           <li>ความเค้นดัดใต้จุดชนใช้สูตรแผ่นรับแรงจุดของ Roark ร่วมกับรัศมีสัมผัสจริง</li>
-          <li>กำลังของกระจกแต่ละบานสุ่มจากการกระจายแบบ Weibull ให้ค่า 5% ล่างเท่ากับ 45 MPa ตาม EN 572 และรวมผลของขนาดพื้นที่รับแรง</li>
+          <li>กำลังของกระจกสุ่มจากการกระจายแบบ Weibull ให้ค่า 5% ล่างเท่ากับ 45 MPa ตาม EN 572 และรวมผลของขนาดพื้นที่รับแรง แต่ละช่วง 4 ซม. ของบานมีรอยตำหนิเป็นของตัวเอง จุดที่เคยรับแรงระดับหนึ่งแล้วไม่แตก จะแทบไม่แตกที่แรงเท่าเดิมอีก แต่จุดใหม่ยังมีโอกาสแตกเท่าเดิม (หลักเดียวกับ proof test)</li>
           <li>เทมเปอร์มีแรงอัดผิวประมาณ 95 MPa (ASTM C1048 กำหนดอย่างน้อย 69 MPa) ลึกประมาณ 21% ของความหนา และอ่อนลงใกล้ขอบ</li>
           <li>ของแข็ง (เหล็ก เซรามิก อะลูมิเนียม) สร้างรอยร้าวรูปกรวยเมื่อแรงเกินเกณฑ์ Auerbach ความลึกคำนวณจาก K = K<sub>IC</sub> = 0.75 MPa·√m หักแรงอัดผิว ถ้ารอยลึกทะลุชั้นอัด เทมเปอร์แตกทั้งบาน</li>
           <li>รอยร้าวเดิมถูกตรวจทุกครั้งที่โดนแรงดัด ถ้า K ที่ปลายรอยถึง K<sub>IC</sub> กระจกแตก</li>
@@ -230,7 +230,7 @@ const X=x=>x*S, Yp=y=>side.height-y*S;
 let glass, hidden, history, broken, shards, glassHits, marks=[];
 function readGlass(){const [ty,t]=$('glassSel').value.split(':');return {type:ty,t:+t/1000};}
 function newGlass(){
-  const g=readGlass(); glass={type:g.type,t:g.t,flaws:[]}; marks=[]; hidden=sampleGlassStrength(g.type);
+  const g=readGlass(); glass={type:g.type,t:g.t,flaws:[]}; marks=[]; hidden=sampleGlassStrength(g.type); hidden.cells={};
   history=[]; broken=null; shards=[]; glassHits=0;
   if(typeof fire!=='undefined'){fire.front=0.3;fire.parts=[];fire.smoke=[];}
   $('log').innerHTML='<tr><td colspan="11" class="cap">ยังไม่มีการชน</td></tr>';
@@ -410,7 +410,7 @@ function impact(o,ys){
   if(r.switched)o.st.casterBroken=true;
   glassHits++;
   marks.push({u,v,n:glassHits,col:o.def.color,dmg:r.coneDepth>0,soft:!spec.hard});
-  history.push({sigMax:r.sigMax,dEdge:r.dEdge,sizeF:r.sizeF});
+  history.push({sigMax:r.sigMax,dEdge:r.dEdge,sizeF:r.sizeF,cell:r.cell});
   let pNext=null;
   if(!r.glassBroken&&!r.destroyed){
     const nspec=o.st.casterBroken?NEXT['chair-base']:face;
@@ -445,7 +445,9 @@ function showResult(o,face,spec,r,pNext,nearMM){
   else if(r.destroyed) setVerdict(`${o.def.name}แตก กระจกยังอยู่`,'warn',r.coneDepth>0?'กระจกมีรอยบิ่นที่จุดชน':'กระจกไม่เสียหาย');
   else {
     const pc=pNext&&pNext.p!=null?pNext.p:0;
-    setVerdict('กระจกยังไม่แตก',pc>0.5?'warn':'ok', r.coneDepth>0?(tempered?'มีรอยตำหนิซ่อนอยู่ใต้ผิว':'มีรอยบิ่นและรอยร้าวเล็กที่จุดชน'):'ไม่มีความเสียหายที่สะสม');
+    const pf=pNext&&pNext.pFresh!=null?pNext.pFresh:null;
+    const odds=pNext&&pNext.p!=null?` · ตีจุดเดิมแรงเท่านี้ ${fmt(pc*100,0)}%`+(pf!=null?` · ย้ายไปจุดใหม่ ${fmt(pf*100,0)}%`:''):'';
+    setVerdict('กระจกยังไม่แตก',pc>0.5?'warn':'ok', (r.coneDepth>0?(tempered?'มีรอยตำหนิซ่อนอยู่ใต้ผิว':'มีรอยบิ่นและรอยร้าวเล็กที่จุดชน'):'ไม่เหลือรอยสะสม')+odds);
   }
   const objState=r.destroyed?'แตก':r.switched?'ล้อหัก':r.objDamaged?r.objDamaged+(r.crushAdd>0.0005?` · ยุบ ${fmt(r.crushAdd*1000)} มม.`:''):r.crushAdd>0.0005?`ยุบ ${fmt(r.crushAdd*1000)} มม.`:(o.st.damaged||'ปกติ');
   const charS=tempered?120:45;
@@ -462,9 +464,9 @@ function showResult(o,face,spec,r,pNext,nearMM){
     ['สภาพวัตถุ',objState],
     ...(r.wear!=null?[['ความเสียหายสะสมของวัตถุ',fmt(r.wear*100,0)+'% (+'+fmt(r.wearAdd*100,0)+'% ครั้งนี้)']]:[]),
   ];
-  if(!r.glassBroken&&pNext&&pNext.p!=null) items.push(['โอกาสแตกถ้าตีซ้ำแบบเดิม',fmt(pNext.p*100,0)+'%']);
+  if(!r.glassBroken&&pNext&&pNext.p!=null){ items.push(['โอกาสแตก: ตีจุดเดิมแรงเท่านี้',fmt(pNext.p*100,0)+'%']); items.push(['โอกาสแตก: ย้ายไปจุดใหม่ (ห่าง ≥4 ซม.)',fmt(pNext.pFresh*100,0)+'%']); }
   if($('reveal').checked){
-    items.push(['กำลังจริงของบานนี้',fmt((hidden.sf0*r.sizeF+(tempered?hidden.sc:0))/1e6,0)+' MPa']);
+    items.push(['กำลังจริงของกระจกตรงจุดนี้',fmt(r.strengthHere/1e6,0)+' MPa']);
     items.push(['ใช้กำลังจริงไป',fmt(r.strengthRatio*100,0)+'%']);
   }
   $('readout').innerHTML=items.map(([k,v])=>`<div class="kv"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('');
@@ -479,7 +481,7 @@ function showResult(o,face,spec,r,pNext,nearMM){
     $('dmgBar').style.background=maxFlaw/lim>0.75?css('--crit'):css('--warn');
   } else $('dmgWrap').hidden=true;
   const maxF=maxFlaw;
-  logRow({name:o.def.name,face:spec.label,v0:r.v0,E:r.Ein,F:r.Fmax,sig:r.sigMax,flaw:maxF,near:nearMM,obj:objState,broken:r.glassBroken,p:pNext&&pNext.p});
+  logRow({name:o.def.name,face:spec.label,v0:r.v0,E:r.Ein,F:r.Fmax,sig:r.sigMax,flaw:maxF,near:nearMM,obj:objState,broken:r.glassBroken,p:pNext&&pNext.p,pf:pNext&&pNext.pFresh});
 }
 function logRow(d){
   const tb=$('log'), wrap=$('logWrap'); const atBottom=wrap.scrollHeight-wrap.scrollTop-wrap.clientHeight<24; if(tb.querySelector('td[colspan]'))tb.innerHTML='';
@@ -487,7 +489,7 @@ function logRow(d){
   const nearTxt=d.near==null?'–':(d.near<1000?fmt(d.near,0)+' มม.':'>1 ม.')+(d.near!=null&&d.near<=12?' ✓':'');
   const n=tb.children.length+1;
   const glassTxt=d.frame?'<span class="warn">ชนกรอบ</span>':d.broken?'<span class="crit">แตก</span>':'<span class="ok">ไม่แตก</span>';
-  tb.insertAdjacentHTML('beforeend',`<tr><td>${n}</td><td>${d.name}<br><span class="cap">${d.face}</span></td><td class="mono">${fmt(d.v0,2)}</td><td class="mono">${fmt(d.E,0)}</td><td class="mono">${d.frame?'–':fmt(d.F/1000,2)}</td><td class="mono">${d.frame?'–':fmt(d.sig/1e6,0)}</td><td class="mono">${d.frame?'–':nearTxt}</td><td class="mono">${d.flaw?fmt(d.flaw*1000,2)+' / '+fmt(lim*1000,1)+' มม.':'–'}</td><td>${d.obj||'–'}</td><td>${glassTxt}</td><td class="mono">${d.p!=null&&!d.broken&&!d.frame?fmt(d.p*100,0)+'%':'–'}</td></tr>`);
+  tb.insertAdjacentHTML('beforeend',`<tr><td>${n}</td><td>${d.name}<br><span class="cap">${d.face}</span></td><td class="mono">${fmt(d.v0,2)}</td><td class="mono">${fmt(d.E,0)}</td><td class="mono">${d.frame?'–':fmt(d.F/1000,2)}</td><td class="mono">${d.frame?'–':fmt(d.sig/1e6,0)}</td><td class="mono">${d.frame?'–':nearTxt}</td><td class="mono">${d.flaw?fmt(d.flaw*1000,2)+' / '+fmt(lim*1000,1)+' มม.':'–'}</td><td>${d.obj||'–'}</td><td>${glassTxt}</td><td class="mono">${d.p!=null&&!d.broken&&!d.frame?fmt(d.p*100,0)+'% / '+fmt(d.pf*100,0)+'%':'–'}</td></tr>`);
   if(atBottom) wrap.scrollTop=wrap.scrollHeight;
 }
 

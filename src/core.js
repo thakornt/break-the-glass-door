@@ -38,6 +38,16 @@ function sampleGlassStrength(type) {
   return { sf0, sc };
 }
 
+// Local strength: each ~4 cm patch of the pane has its own flaw population (Weibull),
+// so a spot that survived a load says little about a fresh spot.
+const CELL = 0.04;
+function cellKey(u, v) { return Math.floor(u * PANEL.a / CELL) + ':' + Math.floor(v * PANEL.b / CELL); }
+function localSf0(hid, u, v) {
+  if (!hid.cells) return hid.sf0;
+  const k = cellKey(u, v);
+  if (hid.cells[k] == null) hid.cells[k] = G.ws0 * Math.pow(-Math.log(1 - Math.random()), 1 / G.wm);
+  return hid.cells[k];
+}
 // Build a contact law from spec + object strike state
 function makeLaw(spec, st) {
   const L = Object.assign({}, spec);
@@ -170,13 +180,14 @@ function simulateImpact(p) {
   // ---------- damage evaluation ----------
   const hid = p.hidden;
   const scLoc = tempered ? sigmaCeff(hid.sc, dEdge) : 0;
+  const sf0Here = localSf0(hid, u, v);
   const dc = 0.21 * t;
   const sizeF = Math.min(G.sizeCap, Math.max(1, Math.pow(G.Aref / (Math.PI * aEffR * aEffR), 1 / G.wm)));
   const res = {
     v0, me, Ein: 0.5 * me * v0 * v0, Fmax, sigMax, wmax, Eabs, vOut: ks ? (mtip * vx + mb * vb) / me : vx, destroyed, switched, lawName,
     crushAdd: maxCrushHere, dbg, objDamaged, contactTime: tc0 === null ? 0 : (tEnd - tc0),
     glassBroken: false, breakCause: '', newFlaw: null, flawMaxRatio: 0, coneDepth: 0, dc, tempered,
-    strengthRatio: sigMax / (hid.sf0 * sizeF + scLoc), sizeF, frame: false
+    strengthRatio: sigMax / (sf0Here * sizeF + scLoc), strengthHere: sf0Here * sizeF + scLoc, cell: cellKey(u, v), sizeF, frame: false
   };
   const R = law.Reff;
   let newFlaw = null;
@@ -203,7 +214,7 @@ function simulateImpact(p) {
     if (!tempered && cc >= 0.8 * t) { res.glassBroken = true; res.breakCause = 'รอยร้าวกรวยทะลุความหนา'; }
   }
   // background (back face) bending fracture
-  if (!res.glassBroken && sigMax >= hid.sf0 * sizeF + scLoc) {
+  if (!res.glassBroken && sigMax >= sf0Here * sizeF + scLoc) {
     res.glassBroken = true;
     res.breakCause = tempered ? 'แรงดัดเกินกำลัง (ผิวอัดแรง + เนื้อกระจก)' : 'แรงดัดเกินกำลังกระจก';
   }
@@ -267,11 +278,15 @@ function predictBreak(p, history, N = 4000) {
   const r0 = simulateImpact(Object.assign({}, p, { dry: true,
     objState: JSON.parse(JSON.stringify(p.objState || {})), hidden: { sf0: 1e12, sc: 95e6 } }));
   const t = p.glass.t, dc = 0.21 * t, dE = r0.dEdge;
-  let kept = 0, broke = 0;
+  const here = cellKey(p.u, p.v);
+  const same = history.filter(h => h.cell === here);   // only hits on this patch tell us about its flaws
+  let kept = 0, broke = 0, fresh = 0, freshN = 0;
   for (let i = 0; i < N; i++) {
     const s = sampleGlassStrength(p.glass.type);
+    const bFresh = r0.sigMax >= s.sf0 * r0.sizeF + (tempered ? sigmaCeff(s.sc, dE) : 0);
+    freshN++; if (bFresh) fresh++;
     let ok = true;
-    for (const h of history) { if (h.sigMax >= s.sf0 * h.sizeF + (tempered ? sigmaCeff(s.sc, h.dEdge) : 0)) { ok = false; break; } }
+    for (const h of same) { if (h.sigMax >= s.sf0 * h.sizeF + (tempered ? sigmaCeff(s.sc, h.dEdge) : 0)) { ok = false; break; } }
     if (!ok) continue;
     kept++;
     let b = r0.sigMax >= s.sf0 * r0.sizeF + (tempered ? sigmaCeff(s.sc, dE) : 0);
@@ -279,7 +294,7 @@ function predictBreak(p, history, N = 4000) {
     if (!b) for (const fl of r0.flawLoads) if (flawRatioFor(fl, s.sc, tempered, t) >= 1) { b = true; break; }
     if (b) broke++;
   }
-  return { p: kept ? broke / kept : null, kept, sig: r0.sigMax, F: r0.Fmax };
+  return { p: kept ? broke / kept : null, pFresh: fresh / freshN, kept, sameCount: same.length, sig: r0.sigMax, F: r0.Fmax };
 }
 
-if (typeof module !== 'undefined') module.exports = { G, PANEL, plateProps, simulateImpact, sampleGlassStrength, predictBreak, flawRatioFor, hertzK, edgeDist, solveCone };
+if (typeof module !== 'undefined') module.exports = { cellKey, G, PANEL, plateProps, simulateImpact, sampleGlassStrength, predictBreak, flawRatioFor, hertzK, edgeDist, solveCone };
