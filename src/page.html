@@ -1,4 +1,4 @@
-<title>ห้องทดลองประตูกระจก</title>
+<title>จำลองประตูกระจก</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -90,7 +90,7 @@ details summary{cursor:pointer;font-family:var(--f-display);font-weight:600;font
 
 <div class="wrap">
   <header>
-    <h1>ห้องทดลองประตูกระจก</h1>
+    <h1>จำลองประตูกระจก</h1>
     <p>ไฟลามมาจากด้านหลังห้อง ทางออกเดียวคือประตูกระจก เลือกวัตถุในออฟฟิศ ลากไปชนประตูกระจก ความเร็วที่ลากได้ถูกจำกัดด้วยแรงและกำลังของคน ของหนักจึงตามเมาส์ช้ากว่า ผลการชนคำนวณจากกลศาสตร์การชน การดัดของแผ่นกระจก และกลศาสตร์รอยร้าว ไม่มีการกำหนดจำนวนครั้งที่ต้องตีไว้ล่วงหน้า</p>
   </header>
 
@@ -282,11 +282,15 @@ side.addEventListener('pointerdown',e=>{
   if(!cur||cur.destroyed)return; const w=toWorld(e); const p=pose(cur);
   const pad=Math.max(0.12, 0.06);
   if(w.x>cur.x-pad&&w.x<cur.x+p.w+pad&&w.y>cur.y-pad&&w.y<cur.y+p.h+pad){
-    cur.held=true; cur.gdx=w.x-cur.x; cur.gdy=w.y-cur.y; ptr={...w,on:true}; side.setPointerCapture(e.pointerId); side.classList.add('grabbing'); e.preventDefault();
+    cur.held=true; cur.gdx=w.x-cur.x; cur.gdy=w.y-cur.y; ptr={...w,on:true,id:e.pointerId}; try{side.setPointerCapture(e.pointerId);}catch(_){} side.classList.add('grabbing'); e.preventDefault();
   }
 });
-side.addEventListener('pointermove',e=>{const w=toWorld(e);ptr.x=w.x;ptr.y=w.y;});
-const release=()=>{if(cur)cur.held=false;ptr.on=false;side.classList.remove('grabbing');};
+side.addEventListener('pointermove',e=>{if(ptr.on&&e.buttons===0&&e.pointerType==='mouse'){release();return;}const w=toWorld(e);ptr.x=w.x;ptr.y=w.y;});
+const release=()=>{if(cur)cur.held=false;if(ptr.id!=null){try{if(side.hasPointerCapture(ptr.id))side.releasePointerCapture(ptr.id);}catch(_){}}ptr.on=false;ptr.id=null;side.classList.remove('grabbing');};
+side.addEventListener('lostpointercapture',()=>{if(ptr.on)release();});
+window.addEventListener('pointerup',()=>{if(ptr.on)release();});
+window.addEventListener('blur',()=>{if(ptr.on)release();});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&ptr.on)release();});
 side.addEventListener('pointerup',release); side.addEventListener('pointercancel',release);
 function setAimFromFront(e){const r=front.getBoundingClientRect();const fx=(e.clientX-r.left)/r.width;const m=0.12/(PANEL.a+0.24);let u=(fx-m)/(1-2*m);u=Math.max(0.02,Math.min(0.98,u));$('aim').value=Math.round(u*100);aimText();}
 front.addEventListener('pointerdown',e=>{setAimFromFront(e);front.setPointerCapture(e.pointerId);});
@@ -373,6 +377,7 @@ function step(dt){
 
 // ---------- impact ----------
 function impact(o,ys){
+  if(o.held) release(); // hitting the door ends the drag
   o.lastHit=simT;
   const v=(ys-PANEL.y0)/PANEL.b, u=aimU();
   const face=faceOf(o);
