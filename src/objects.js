@@ -32,7 +32,8 @@ const OBJECTS = [
     ] },
   { id: 'mug', name: 'แก้วกาแฟเซรามิก', mass: 0.35, feff: 1, w: 0.1, h: 0.1, color: '#f2f2ee',
     faces: [
-      { id: 'mug-rim', label: 'ขอบแก้ว', kind: 'hertz', Eo: 70e9, nuo: 0.22, R: 0.003, area: 'sphere', pc: Infinity, hard: true, breakF: 1800, mat: 'เซรามิก' }
+      { id: 'mug-rim', label: 'ขอบปากแก้ว', kind: 'hertz', Eo: 70e9, nuo: 0.22, R: 0.003, area: 'sphere', pc: Infinity, hard: true, breakF: 1800, mat: 'เซรามิก' },
+      { id: 'mug-base', label: 'ก้นแก้ว (ขอบฐานหนา)', fy: 0.05, kind: 'hertz', Eo: 70e9, nuo: 0.22, R: 0.005, area: 'sphere', pc: Infinity, hard: true, breakF: 4000, mat: 'เซรามิก' }
     ] },
   { id: 'stapler', name: 'ที่เย็บกระดาษเหล็ก', mass: 0.45, feff: 0.9, w: 0.18, h: 0.06, color: '#5b6470',
     faces: [
