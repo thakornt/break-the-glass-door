@@ -58,8 +58,8 @@ const OBJECTS = [
     ] },
   { id: 'strip', name: 'ปลั๊กพ่วง', shape: 'strip', mass: 0.55, feff: 0.85, w: 0.3, h: 0.045, color: '#ecebe6',
     faces: [
-      { id: 'strip-corner', label: 'มุมรางปลั๊ก (ถือด้วยมือ)', kind: 'hertz', Eo: 2.4e9, nuo: 0.37, R: 0.004, area: 'corner', A0: 6e-6, g: 3, pc: 25e6, hard: false, breakF: 1200, mat: 'PC (เคสกลวง)', mtip: 0.15, ks: 3e6 },
-      { id: 'strip-sling', label: 'มุมรางปลั๊ก (เหวี่ยงด้วยสายไฟ)', vMult: 1.6, kind: 'hertz', Eo: 2.4e9, nuo: 0.37, R: 0.004, area: 'corner', A0: 6e-6, g: 3, pc: 25e6, hard: false, breakF: 1200, mat: 'PC (เคสกลวง)', mtip: 0.15, ks: 3e6 }
+      { id: 'strip-corner', label: 'มุมรางปลั๊ก (ถือด้วยมือ)', kind: 'hertz', Eo: 2.4e9, nuo: 0.37, R: 0.004, area: 'corner', A0: 6e-6, g: 3, pc: 25e6, hard: false, wreckE: 60, stages: [[0.0001, 'มุมเคสถลอก'], [0.25, 'มุมเคสบิ่น'], [0.5, 'เคสร้าว ฝาเริ่มแยก'], [0.75, 'เคสแตก ฝาหลุดบางส่วน'], [1, 'เคสแตกกระจาย เห็นแผงทองแดงข้างใน']], mat: 'PC (เคสกลวง)', mtip: 0.15, ks: 3e6 },
+      { id: 'strip-sling', label: 'มุมรางปลั๊ก (เหวี่ยงด้วยสายไฟ)', vMult: 1.6, kind: 'hertz', Eo: 2.4e9, nuo: 0.37, R: 0.004, area: 'corner', A0: 6e-6, g: 3, pc: 25e6, hard: false, wreckE: 60, stages: [[0.0001, 'มุมเคสถลอก'], [0.25, 'มุมเคสบิ่น'], [0.5, 'เคสร้าว ฝาเริ่มแยก'], [0.75, 'เคสแตก ฝาหลุดบางส่วน'], [1, 'เคสแตกกระจาย เห็นแผงทองแดงข้างใน']], mat: 'PC (เคสกลวง)', mtip: 0.15, ks: 3e6 }
     ] },
   // Phones: weight, size and frame material from manufacturer spec pages (Oct 2026)
   { id: 'ip18pro', name: 'iPhone 18 Pro', shape: 'phone', mass: 0.211, feff: 0.9, w: 0.150, h: 0.00875, color: '#9aa3ab',

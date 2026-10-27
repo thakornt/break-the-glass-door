@@ -517,6 +517,7 @@ function drawObj(c,o){
     for(let i=0;i<14;i++) c.fillRect(W*0.03+i*W*0.068,-H*1.25,W*0.05,H*0.3); c.restore(); markStrike(c,o,p); return; }
   if(shp==='strip'){ c.fillStyle=col; rr(c,0,-H,W,H,0.008*S); c.fill(); c.stroke(); c.fillStyle=css('--muted');
     for(let i=0;i<4;i++) c.fillRect(W*0.15+i*W*0.2,-H*0.7,W*0.08,H*0.4);
+    const sw=o.st.wear||0; if(sw>0){c.strokeStyle=css('--crit');c.lineWidth=1;const n=1+Math.floor(sw*6);for(let i=0;i<n;i++){const x=W*(0.95-i*0.12);c.beginPath();c.moveTo(x,-H);c.lineTo(x-W*0.04,-H*0.3);c.lineTo(x+W*0.02,0);c.stroke();} if(sw>=1){c.fillStyle='#b87333';c.fillRect(W*0.7,-H*0.6,W*0.28,H*0.2);}}
     c.strokeStyle=css('--ink'); c.beginPath(); c.moveTo(0,-H/2); c.bezierCurveTo(-0.2*S,-H/2,-0.25*S,0.05*S,-0.5*S,-0.02*S); c.stroke(); c.restore(); markStrike(c,o,p); return; }
   if(f==='teak-corner'||f==='mdf-corner'||f==='ply-corner'){
     const top=0.045*S;
