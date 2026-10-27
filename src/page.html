@@ -272,7 +272,7 @@ function renderFaces(){
   if(st.casterBroken) bits.push('ล้อหักแล้ว ครั้งต่อไปฐานอะลูมิเนียมจะชนแทน');
   if(st.damaged) bits.push('สภาพ: '+st.damaged);
   const fc=cur.def.faces[cur.fi]; if(cur.def.shape==='phone'||cur.def.shape==='fold') bits.push(`${Math.round(cur.def.mass*1000)} g · ${fc.mat} · ค่าน้ำหนักและวัสดุจากสเปกผู้ผลิต`);
-  $('objhint').textContent=bits.length?bits.join(' · '):'ลากวัตถุในมุมด้านข้าง ยิ่งลากเร็วยิ่งชนแรง แต่ไม่เกินขีดของคน';
+  $('objhint').textContent=bits.length?bits.join(' · '):'กดตรงไหนในฉากก็ได้ วัตถุจะย้ายมาที่เคอร์เซอร์ แล้วลากไปชนกระจก ยิ่งลากเร็วยิ่งชนแรง แต่ไม่เกินขีดของคน';
 }
 
 // ---------- input ----------
@@ -280,10 +280,17 @@ let ptr={x:0,y:0,on:false,id:null};
 function toWorld(e){const r=side.getBoundingClientRect();const sx=side.width/r.width;return {x:(e.clientX-r.left)*sx/S,y:(side.height-(e.clientY-r.top)*sx)/S};}
 side.addEventListener('pointerdown',e=>{
   if(!cur||cur.destroyed)return; const w=toWorld(e); const p=pose(cur);
-  const pad=Math.max(0.12, 0.06);
-  if(w.x>cur.x-pad&&w.x<cur.x+p.w+pad&&w.y>cur.y-pad&&w.y<cur.y+p.h+pad){
-    cur.held=true; cur.gdx=w.x-cur.x; cur.gdy=w.y-cur.y; ptr={...w,on:true,id:e.pointerId}; try{side.setPointerCapture(e.pointerId);}catch(_){} side.classList.add('grabbing'); e.preventDefault();
+  const pad=0.12;
+  const onObj=w.x>cur.x-pad&&w.x<cur.x+p.w+pad&&w.y>cur.y-pad&&w.y<cur.y+p.h+pad;
+  if(onObj){cur.gdx=w.x-cur.x; cur.gdy=w.y-cur.y;}
+  else { // missed the object: warp it to the cursor, centred, no animation
+    cur.gdx=p.w/2; cur.gdy=p.h/2;
+    let nx=w.x-cur.gdx; if(!broken) nx=Math.min(nx,WORLD.doorX-p.sx-0.02);
+    cur.x=Math.max(0,nx); cur.y=Math.max(0,Math.min(WORLD.h-p.h,w.y-cur.gdy));
+    cur.gdx=w.x-cur.x; cur.gdy=w.y-cur.y; cur.lastHit=simT;
   }
+  cur.vx=cur.vy=0; cur.held=true;
+  ptr={...w,on:true,id:e.pointerId}; try{side.setPointerCapture(e.pointerId);}catch(_){} side.classList.add('grabbing'); e.preventDefault();
 });
 side.addEventListener('pointermove',e=>{if(ptr.on&&e.buttons===0&&e.pointerType==='mouse'){release();return;}const w=toWorld(e);ptr.x=w.x;ptr.y=w.y;});
 const release=()=>{if(cur)cur.held=false;if(ptr.id!=null){try{if(side.hasPointerCapture(ptr.id))side.releasePointerCapture(ptr.id);}catch(_){}}ptr.on=false;ptr.id=null;side.classList.remove('grabbing');};
@@ -565,7 +572,7 @@ function drawSide(){
   if(cur&&!cur.destroyed){
     const sp=Math.hypot(cur.vx,cur.vy), p=pose(cur), m=cur.def.mass*cur.def.feff;
     $('hud').innerHTML=`<span>${cur.def.name}</span><span>ความเร็ว <b>${sp.toFixed(2)}</b> / ${vMaxFor(cur.def.mass,faceOf(cur)).toFixed(1)} m/s</span><span>พลังงาน <b>${(0.5*m*cur.vx*cur.vx).toFixed(0)}</b> J (แนวตั้งฉากกระจก)</span><span>ความสูงจุดชน <b>${(cur.y+p.sy).toFixed(2)}</b> ม.</span>`;
-  } else $('hud').innerHTML=cur?`<span>${cur.def.name}แตกแล้ว เลือกวัตถุใหม่</span>`:'<span>เลือกวัตถุด้านล่าง</span>';
+  } else $('hud').innerHTML=cur?`<span>${cur.def.name}แตกแล้ว กดปุ่มรีเซ็ตมุมบนขวาเพื่อเริ่มใหม่</span>`:'<span>เลือกวัตถุด้านล่าง</span>';
 }
 // deterministic rng for crack drawing
 function rng(seed){let s=seed>>>0||1;return()=>{s^=s<<13;s^=s>>>17;s^=s<<5;return ((s>>>0)%100000)/100000;};}
@@ -658,8 +665,11 @@ $('runCal').onclick=()=>{
 // ---------- wiring ----------
 $('newGlass').onclick=newGlass;
 $('resetScene').onclick=()=>{
+  release();
   newGlass();
-  if(cur){cur.held=false;cur.vx=cur.vy=0;cur.y=0;cur.x=1.1;const p=pose(cur);cur.x=Math.min(cur.x,WORLD.doorX-p.w-0.3);if(cur.x<0.1)cur.x=0.6;cur.lastHit=-9;ptr.on=false;side.classList.remove('grabbing');}
+  const id=cur?cur.def.id:OBJECTS[0].id, fi=cur?cur.fi:0;
+  for(const k in objs)delete objs[k]; // fresh objects: broken mugs, crushed corners and cracked screens all restored
+  cur=null; spawn(OBJECTS.find(d=>d.id===id)); cur.fi=fi; renderFaces();
 };
 $('glassSel').onchange=newGlass;
 $('resetObj').onclick=()=>{for(const k in objs)delete objs[k];const id=cur?cur.def.id:'teak';cur=null;spawn(OBJECTS.find(d=>d.id===id));};
