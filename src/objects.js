@@ -38,15 +38,15 @@ const OBJECTS = [
     faces: [
       { id: 'stapler-corner', label: 'มุมเหล็ก', kind: 'hertz', Eo: 200e9, nuo: 0.3, R: 0.0015, area: 'sphere', pc: 0.9e9, hard: true, mat: 'เหล็ก' }
     ] },
-  { id: 'lcd', name: 'จอ LCD 24 นิ้ว (รุ่นเก่า มีขาตั้ง)', shape: 'monitor', mass: 5.5, feff: 0.6, w: 0.56, h: 0.48, color: '#2b2f36',
+  { id: 'lcd', name: 'จอ LCD 24 นิ้ว (รุ่นเก่า มีขาตั้ง)', shape: 'monitor', style: 'lcd', mass: 5.5, feff: 0.6, w: 0.56, h: 0.48, color: '#2b2f36',
     faces: [
-      { id: 'lcd-corner', label: 'มุมจอ (กรอบพลาสติก)', kind: 'hertz', Eo: 2.3e9, nuo: 0.37, R: 0.004, area: 'corner', A0: 1e-5, g: 3, pc: 60e6, hard: false, damageF: 1500, damageLabel: 'จอ LCD ข้างในแตก', mat: 'ABS', mtip: 0.4, ks: 2e6 },
-      { id: 'lcd-stand', label: 'ขอบฐานขาตั้ง (เหล็กพ่นสี)', fy: 0.02, kind: 'hertz', Eo: 200e9, nuo: 0.3, R: 0.003, area: 'sphere', pc: 0.6e9, hard: true, mat: 'เหล็ก', mtip: 0.8, ks: 3e6 }
+      { id: 'lcd-corner', label: 'มุมจอ (กรอบพลาสติก)', kind: 'hertz', Eo: 2.3e9, nuo: 0.37, R: 0.004, area: 'corner', A0: 1e-5, g: 3, pc: 60e6, hard: false, wreckE: 95, stages: [[0.0001, 'กรอบถลอก'], [0.2, 'จอร้าวที่มุม'], [0.4, 'จอร้าวลาม มีเส้นสีขึ้น'], [0.65, 'สีเพี้ยน หมึกจอไหลเป็นปื้น'], [0.85, 'ภาพกระพริบ ครึ่งจอดับ'], [1, 'จอดับสนิท กรอบแตก']], mat: 'ABS', mtip: 0.4, ks: 2e6 },
+      { id: 'lcd-stand', label: 'ขอบฐานขาตั้ง (เหล็กพ่นสี)', fy: 0.03, fx: 0.75, wreckE: 140, stages: [[0.0001, 'กรอบถลอก'], [0.2, 'จอร้าวที่มุม'], [0.4, 'จอร้าวลาม มีเส้นสีขึ้น'], [0.65, 'สีเพี้ยน หมึกจอไหลเป็นปื้น'], [0.85, 'ภาพกระพริบ ครึ่งจอดับ'], [1, 'จอดับสนิท กรอบแตก']], kind: 'hertz', Eo: 200e9, nuo: 0.3, R: 0.003, area: 'sphere', pc: 0.6e9, hard: true, mat: 'เหล็ก', mtip: 0.8, ks: 3e6 }
     ] },
-  { id: 'led', name: 'จอ LED 27 นิ้ว (บาง)', shape: 'monitor', mass: 4.6, feff: 0.6, w: 0.62, h: 0.52, color: '#1c1f24',
+  { id: 'led', name: 'จอ LED 27 นิ้ว (บาง)', shape: 'monitor', style: 'led', mass: 4.6, feff: 0.6, w: 0.62, h: 0.52, color: '#1c1f24',
     faces: [
-      { id: 'led-corner', label: 'มุมจอ (กรอบพลาสติก)', kind: 'hertz', Eo: 2.3e9, nuo: 0.37, R: 0.003, area: 'corner', A0: 6e-6, g: 3, pc: 60e6, hard: false, damageF: 1200, damageLabel: 'แผงจอแตก', mat: 'ABS', mtip: 0.3, ks: 1.5e6 },
-      { id: 'led-stand', label: 'ขอบฐานขาตั้ง (อะลูมิเนียม)', fy: 0.02, kind: 'hertz', Eo: 70e9, nuo: 0.33, R: 0.003, area: 'sphere', pc: 0.5e9, hard: true, mat: 'อะลูมิเนียม', mtip: 0.7, ks: 3e6 }
+      { id: 'led-corner', label: 'มุมจอ (กรอบพลาสติก)', kind: 'hertz', Eo: 2.3e9, nuo: 0.37, R: 0.003, area: 'corner', A0: 6e-6, g: 3, pc: 60e6, hard: false, wreckE: 75, stages: [[0.0001, 'กรอบถลอก'], [0.2, 'จอร้าวที่มุม'], [0.4, 'จอร้าวลาม มีเส้นสีขึ้น'], [0.65, 'สีเพี้ยน หมึกจอไหลเป็นปื้น'], [0.85, 'ภาพกระพริบ ครึ่งจอดับ'], [1, 'จอดับสนิท กรอบแตก']], mat: 'ABS', mtip: 0.3, ks: 1.5e6 },
+      { id: 'led-stand', label: 'ขอบฐานขาตั้ง (อะลูมิเนียม)', fy: 0.015, fx: 0.71, wreckE: 110, stages: [[0.0001, 'กรอบถลอก'], [0.2, 'จอร้าวที่มุม'], [0.4, 'จอร้าวลาม มีเส้นสีขึ้น'], [0.65, 'สีเพี้ยน หมึกจอไหลเป็นปื้น'], [0.85, 'ภาพกระพริบ ครึ่งจอดับ'], [1, 'จอดับสนิท กรอบแตก']], kind: 'hertz', Eo: 70e9, nuo: 0.33, R: 0.003, area: 'sphere', pc: 0.5e9, hard: true, mat: 'อะลูมิเนียม', mtip: 0.7, ks: 3e6 }
     ] },
   { id: 'mouse', name: 'เมาส์', shape: 'mouse', mass: 0.1, feff: 0.9, w: 0.12, h: 0.04, color: '#3d434b',
     faces: [
@@ -72,24 +72,24 @@ const OBJECTS = [
       { id: 'squishy-body', label: 'ตัวตุ๊กตา (โฟม PU คืนตัวช้า)', fy: 0.5, kind: 'linear', K: 2.5e3, rFixed: 0.045, area: 'fixed', pc: Infinity, hard: false, mat: 'โฟม PU' }
     ] },
   // Phones: weight, size and frame material from manufacturer spec pages (Oct 2026)
-  { id: 'ip18pro', name: 'iPhone 18 Pro', shape: 'phone', mass: 0.211, feff: 0.9, w: 0.150, h: 0.00875, color: '#9aa3ab',
+  { id: 'ip18pro', name: 'iPhone 18 Pro', shape: 'phone', screen: 'oled', mass: 0.211, feff: 0.9, w: 0.150, h: 0.0719, color: '#9aa3ab',
     faces: [
       { id: 'ip18pro-corner', label: 'มุมเครื่อง (เฟรมอะลูมิเนียม)', kind: 'hertz', Eo: 70e9, nuo: 0.33, R: 0.004, area: 'sphere', pc: 0.3e9, hard: true, wreckE: 30, stages: [[0.0001, 'กระจกหลังร้าว'], [0.25, 'มุมเฟรมบุบ จอร้าวลาม'], [0.5, 'เฟรมยุบ จอแตกละเอียด'], [0.75, 'ตัวเครื่องงอ จอดับ'], [1, 'พังยับ ใช้งานไม่ได้']], mat: 'อะลูมิเนียม' }
     ] },
-  { id: 'ip18pm', name: 'iPhone 18 Pro Max', shape: 'phone', mass: 0.249, feff: 0.9, w: 0.1634, h: 0.00875, color: '#9aa3ab',
+  { id: 'ip18pm', name: 'iPhone 18 Pro Max', shape: 'phone', screen: 'oled', mass: 0.249, feff: 0.9, w: 0.1634, h: 0.078, color: '#9aa3ab',
     faces: [
       { id: 'ip18pm-corner', label: 'มุมเครื่อง (เฟรมอะลูมิเนียม)', kind: 'hertz', Eo: 70e9, nuo: 0.33, R: 0.004, area: 'sphere', pc: 0.3e9, hard: true, wreckE: 30, stages: [[0.0001, 'กระจกหลังร้าว'], [0.25, 'มุมเฟรมบุบ จอร้าวลาม'], [0.5, 'เฟรมยุบ จอแตกละเอียด'], [0.75, 'ตัวเครื่องงอ จอดับ'], [1, 'พังยับ ใช้งานไม่ได้']], mat: 'อะลูมิเนียม' }
     ] },
-  { id: 's26u', name: 'Galaxy S26 Ultra', shape: 'phone', mass: 0.214, feff: 0.9, w: 0.1636, h: 0.0079, color: '#4a4f57',
+  { id: 's26u', name: 'Galaxy S26 Ultra', shape: 'phone', screen: 'oled', mass: 0.214, feff: 0.9, w: 0.1636, h: 0.0781, color: '#4a4f57',
     faces: [
       { id: 's26u-corner', label: 'มุมเครื่อง (Armor Aluminum)', kind: 'hertz', Eo: 70e9, nuo: 0.33, R: 0.003, area: 'sphere', pc: 0.3e9, hard: true, wreckE: 30, stages: [[0.0001, 'กระจกหลังร้าว'], [0.25, 'มุมเฟรมบุบ จอร้าวลาม'], [0.5, 'เฟรมยุบ จอแตกละเอียด'], [0.75, 'ตัวเครื่องงอ จอดับ'], [1, 'พังยับ ใช้งานไม่ได้']], mat: 'อะลูมิเนียม' }
     ] },
-  { id: 'fold8', name: 'Galaxy Z Fold8 (พับอยู่)', shape: 'fold', mass: 0.201, feff: 0.85, w: 0.1239, h: 0.0097, color: '#3b4048',
+  { id: 'fold8', name: 'Galaxy Z Fold8 (พับอยู่)', shape: 'fold', screen: 'oled', mass: 0.201, feff: 0.85, w: 0.1239, h: 0.0819, color: '#3b4048',
     faces: [
       { id: 'fold8-corner', label: 'มุมเครื่อง (Armor Aluminum)', kind: 'hertz', Eo: 70e9, nuo: 0.33, R: 0.003, area: 'sphere', pc: 0.3e9, hard: true, wreckE: 26, stages: [[0.0001, 'จอนอกร้าว'], [0.25, 'มุมเฟรมบุบ บานพับฝืด'], [0.5, 'บานพับคลอน จอในย่น'], [0.75, 'เครื่องบิด จอดับ'], [1, 'พังยับ ใช้งานไม่ได้']], mat: 'อะลูมิเนียม' },
       { id: 'fold8-hinge', label: 'สันบานพับ', fy: 0.5, kind: 'hertz', Eo: 90e9, nuo: 0.32, R: 0.0048, area: 'sphere', pc: 0.4e9, hard: true, wreckE: 26, stages: [[0.0001, 'จอนอกร้าว'], [0.25, 'มุมเฟรมบุบ บานพับฝืด'], [0.5, 'บานพับคลอน จอในย่น'], [0.75, 'เครื่องบิด จอดับ'], [1, 'พังยับ ใช้งานไม่ได้']], mat: 'อะลูมิเนียม/เหล็ก' }
     ] },
-  { id: 'ipduo', name: 'iPhone Duo (พับอยู่)', shape: 'fold', mass: 0.254, feff: 0.85, w: 0.1178, h: 0.0113, color: '#c9c2b6',
+  { id: 'ipduo', name: 'iPhone Duo (พับอยู่)', shape: 'fold', screen: 'oled', mass: 0.254, feff: 0.85, w: 0.1178, h: 0.0841, color: '#c9c2b6',
     faces: [
       { id: 'ipduo-corner', label: 'มุมเครื่อง (ไทเทเนียม เกรด 5)', kind: 'hertz', Eo: 114e9, nuo: 0.34, R: 0.004, area: 'sphere', pc: 0.5e9, hard: true, wreckE: 30, stages: [[0.0001, 'จอนอกร้าว'], [0.25, 'มุมเฟรมบุบ บานพับฝืด'], [0.5, 'บานพับคลอน จอในย่น'], [0.75, 'เครื่องบิด จอดับ'], [1, 'พังยับ ใช้งานไม่ได้']], mat: 'ไทเทเนียม' },
       { id: 'ipduo-hinge', label: 'สันบานพับ (ไทเทเนียม)', fy: 0.5, kind: 'hertz', Eo: 114e9, nuo: 0.34, R: 0.0056, area: 'sphere', pc: 0.6e9, hard: true, wreckE: 32, stages: [[0.0001, 'จอนอกร้าว'], [0.25, 'มุมเฟรมบุบ บานพับฝืด'], [0.5, 'บานพับคลอน จอในย่น'], [0.75, 'เครื่องบิด จอดับ'], [1, 'พังยับ ใช้งานไม่ได้']], mat: 'ไทเทเนียม' }

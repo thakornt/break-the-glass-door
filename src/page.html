@@ -501,6 +501,42 @@ function logRow(d){
 
 // ---------- drawing ----------
 function rr(c,x,y,w,h,r){c.beginPath();c.roundRect?c.roundRect(x,y,w,h,r):c.rect(x,y,w,h);}
+
+// Screen with progressive, per-object random damage. kind: 'lcd' | 'led' | 'oled'
+function screen(c,x,y,w,h,o,kind){
+  const wear=o.st.wear||0; if(wear>0&&!o.st.seed) o.st.seed=1+Math.floor(Math.random()*1e9);
+  const R=rng(o.st.seed||7);
+  c.save(); c.beginPath(); c.rect(x,y,w,h); c.clip();
+  // healthy picture
+  const g=c.createLinearGradient(x,y,x+w,y+h);
+  if(kind==='lcd'){ g.addColorStop(0,'#5d7f9a'); g.addColorStop(1,'#2c4258'); }
+  else if(kind==='led'){ g.addColorStop(0,'#3d8bff'); g.addColorStop(0.6,'#7b4dff'); g.addColorStop(1,'#ff6fa8'); }
+  else { g.addColorStop(0,'#1d2a6b'); g.addColorStop(0.5,'#3f6dd8'); g.addColorStop(1,'#59c3c3'); }
+  c.fillStyle=wear>=1?'#050607':g; c.fillRect(x,y,w,h);
+  if(wear<1&&kind!=='lcd'){ c.fillStyle='rgba(255,255,255,0.75)'; c.font=`${Math.max(6,Math.round(h*0.18))}px ${css('--f-mono')}`; c.textBaseline='middle'; c.fillText('12:30',x+w*0.18,y+h*0.45); }
+  if(wear<1&&kind==='lcd'){ c.fillStyle='rgba(255,255,255,0.18)'; for(let i=0;i<4;i++) c.fillRect(x+w*0.08,y+h*(0.15+i*0.18),w*(0.5+R()*0.3),Math.max(1,h*0.06)); }
+  const flick=!reduceMotion&&wear>=0.5&&wear<1;
+  // colour faults appear in stages, positions are random per object
+  if(wear>=0.4&&wear<1){ const n=1+Math.floor(R()*3)+(wear>=0.65?2:0);
+    const pal=kind==='oled'?['#39ff7a','#ff3df2','#ffffff']:['#ff2b2b','#2bff4b','#2b6bff','#ffffff','#ffe14a'];
+    for(let i=0;i<n;i++){ const lx=x+w*R(); if(flick&&Math.random()<0.15) continue; c.fillStyle=pal[Math.floor(R()*pal.length)]; c.globalAlpha=0.85; c.fillRect(lx,y,Math.max(1,w*0.006*(1+R()*2)),h); }
+    c.globalAlpha=1; }
+  if(wear>=0.65&&wear<1){ // ink bleed (LCD) or dead black blotch (OLED) spreading from the hit corner
+    const bx=x+w*(0.75+R()*0.2), by=y+h*(0.05+R()*0.25), br=Math.max(w,h)*(0.25+0.35*(wear-0.65)/0.35);
+    const bg=c.createRadialGradient(bx,by,0,bx,by,br);
+    if(kind==='oled'){ bg.addColorStop(0,'rgba(0,0,0,0.95)'); bg.addColorStop(0.7,'rgba(0,0,0,0.8)'); bg.addColorStop(1,'rgba(0,0,0,0)'); }
+    else { bg.addColorStop(0,'rgba(20,10,30,0.95)'); bg.addColorStop(0.45,'rgba(150,60,220,0.7)'); bg.addColorStop(0.75,'rgba(255,255,255,0.35)'); bg.addColorStop(1,'rgba(255,255,255,0)'); }
+    c.fillStyle=bg; c.fillRect(x,y,w,h); }
+  if(wear>=0.85&&wear<1){ // half the panel loses signal, glitch bands flicker
+    const half=R()<0.5; c.fillStyle='#050607'; if(half) c.fillRect(x,y,w*0.5,h); else c.fillRect(x,y+h*0.5,w,h*0.5);
+    const bands=4+Math.floor(R()*4); for(let i=0;i<bands;i++){ const yy=y+h*(flick?Math.random():R()); c.fillStyle=['#ff2b2b','#2bff4b','#2b6bff','#ffffff'][i%4]; c.globalAlpha=0.5; c.fillRect(x,yy,w,Math.max(1,h*0.02)); } c.globalAlpha=1; }
+  // cracks radiate from the impact corner (top-right), more branches as wear grows
+  if(wear>=0.2||(kind==='oled'&&wear>0)){ const n=3+Math.floor(wear*12); c.strokeStyle='rgba(235,245,255,0.85)'; c.lineWidth=Math.max(0.6,w*0.004);
+    const ox=x+w, oy=y; for(let i=0;i<n;i++){ let a=Math.PI*(0.5+0.5*R()), len=Math.max(w,h)*(0.2+R()*0.9*wear), px=ox, py=oy; c.beginPath(); c.moveTo(px,py);
+      for(let k=0;k<5;k++){ a+=(R()-0.5)*0.6; px+=Math.cos(a)*len/5; py+=Math.sin(a)*len/5; c.lineTo(px,py); } c.stroke(); }
+    if(wear>=0.4){ c.beginPath(); c.arc(ox,oy,Math.max(w,h)*0.12*(1+wear),Math.PI/2,Math.PI); c.stroke(); } }
+  c.restore();
+}
 function drawObj(c,o){
   const p=pose(o), f=faceOf(o).id, col=o.def.color, x0=X(o.x), y0=Yp(o.y), W=p.w*S, H=p.h*S;
   c.save(); c.translate(x0,y0); // origin bottom-left, y up = negative
@@ -508,15 +544,13 @@ function drawObj(c,o){
   const crush=(o.st.crush||0)*S;
   const shp=o.def.shape, px=v=>Math.max(v*S,3);
   if(shp==='phone'||shp==='fold'){
-    const t=px(p.h), wear=o.st.wear||0, bend=wear*0.18; // body bends and crumples as wear builds up
-    c.save(); c.translate(W/2,-t/2);
-    const seg=6, pts=[]; for(let i=0;i<=seg;i++){const s=i/seg-0.5; pts.push([s*W, -Math.abs(s)*0+bend*W*(0.25-s*s)]);}
-    c.fillStyle=col; c.beginPath(); pts.forEach(([x,y],i)=>i?c.lineTo(x,y-t/2):c.moveTo(x,y-t/2));
-    for(let i=seg;i>=0;i--){const [x,y]=pts[i]; c.lineTo(x,y+t/2);} c.closePath(); c.fill(); c.stroke();
-    if(shp==='fold'){c.fillStyle=css('--muted');c.fillRect(W/2-Math.max(3,0.004*S),-t/2,Math.max(3,0.004*S),t);}
-    if(wear>0||o.st.damaged){const n=1+Math.floor(wear*8); c.strokeStyle=css('--crit'); c.lineWidth=1;
-      for(let i=0;i<n;i++){const x=(-0.4+0.8*((i*0.618)%1))*W; c.beginPath(); c.moveTo(x,-t/2+bend*W*0.2); c.lineTo(x+W*0.05,t/2+bend*W*0.2); c.stroke();}}
-    c.restore();
+    // face-on view: screen toward the viewer, impact corner at top-right
+    const wear=o.st.wear||0, r=Math.min(W,H)*0.14, dent=Math.min(H*0.25,wear*H*0.3);
+    c.fillStyle=col; c.beginPath(); c.moveTo(r,-H); c.lineTo(W-dent,-H); c.lineTo(W,-H+dent); c.lineTo(W,-r); c.quadraticCurveTo(W,0,W-r,0); c.lineTo(r,0); c.quadraticCurveTo(0,0,0,-r); c.lineTo(0,-H+r); c.quadraticCurveTo(0,-H,r,-H); c.closePath(); c.fill(); c.stroke();
+    const bz=Math.max(1.5,H*0.05), sx=bz+(shp==='fold'?W*0.04:0), sy=-H+bz, sw=W-sx-bz-dent*0.3, sh=H-2*bz;
+    screen(c,sx,sy,sw,sh,o,'oled');
+    if(shp==='fold'){c.fillStyle=css('--muted');c.fillRect(0,-H,Math.max(2,W*0.035),H);}
+    c.fillStyle='#0b0d10'; c.beginPath(); c.arc(sx+sw*0.06,sy+sh/2,Math.max(1,H*0.035),0,7); c.fill();
     c.restore(); markStrike(c,o,p); return;
   }
   if(shp==='dumbbell'){
@@ -535,9 +569,20 @@ function drawObj(c,o){
     c.restore(); markStrike(c,o,p); return;
   }
   if(shp==='monitor'){
-    const pan=0.03*S; c.fillStyle=col; c.fillRect(W*0.1,-H,W*0.9,H*0.72); c.strokeRect(W*0.1,-H,W*0.9,H*0.72);
-    c.fillStyle=o.st.damaged?css('--crit'):css('--glass'); c.globalAlpha=o.st.damaged?0.5:0.35; c.fillRect(W*0.12,-H*0.98,W*0.86,H*0.66); c.globalAlpha=1;
-    c.fillStyle=css('--muted'); c.fillRect(W*0.5,-H*0.28,0.03*S,H*0.26); c.fillRect(W*0.25,-0.02*S,W*0.75,0.02*S);
+    const lcd=o.def.style==='lcd', wear=o.st.wear||0;
+    const panH=H*0.72, bez=lcd?0.022*S:0.006*S, chin=lcd?0.03*S:0.012*S;
+    // stand, centred under the panel
+    const neckW=(lcd?0.05:0.022)*S, baseW=(lcd?0.28:0.26)*S, baseH=(lcd?0.03:0.012)*S;
+    c.fillStyle=lcd?col:'#aeb4ba';
+    c.fillRect(W/2-neckW/2,-H+panH,neckW,H-panH-baseH);
+    if(lcd){ c.fillRect(W/2-baseW/2,-baseH,baseW,baseH); c.strokeRect(W/2-baseW/2,-baseH,baseW,baseH); }
+    else { c.beginPath(); c.ellipse(W/2,-baseH/2,baseW/2,baseH/2,0,0,7); c.fill(); c.stroke(); }
+    // panel body: LCD is a thick boxy bezel, LED is a thin edge with a slim chin
+    c.fillStyle=col; rr(c,0,-H,W,panH,lcd?2:4); c.fill(); c.stroke();
+    if(lcd){ c.fillStyle='#3a3f47'; c.fillRect(W*0.02,-H+panH-chin*0.9,W*0.96,chin*0.7); c.fillStyle=wear>=1?'#5a2020':'#46d07a'; c.fillRect(W*0.9,-H+panH-chin*0.6,Math.max(2,W*0.012),Math.max(2,W*0.012)); }
+    else { c.fillStyle='#aeb4ba'; c.fillRect(W*0.47,-H+panH-chin*0.75,W*0.06,Math.max(1,chin*0.35)); }
+    screen(c,bez,-H+bez,W-2*bez,panH-bez-chin,o,lcd?'lcd':'led');
+    if(wear>=1){ c.strokeStyle=css('--ink'); c.lineWidth=1.5; c.beginPath(); c.moveTo(W,-H+panH*0.15); c.lineTo(W*0.93,-H+panH*0.05); c.stroke(); }
     c.restore(); markStrike(c,o,p); return;
   }
   if(shp==='mouse'){ c.fillStyle=col; c.beginPath(); c.ellipse(W/2,-H/2,W/2,H/2,0,0,7); c.fill(); c.stroke();
@@ -723,6 +768,7 @@ $('resetObj').onclick=()=>{for(const k in objs)delete objs[k];const id=cur?cur.d
 $('reveal').onchange=()=>{};
 window.addEventListener('resize',resize);
 resize(); newGlass(); spawn(OBJECTS[0]); aimText();
+window.__glassLab={get cur(){return cur;},spawn:id=>spawn(OBJECTS.find(d=>d.id===id))}; // debug hook for tests
 let last=performance.now();
 function frame(now){
   let dt=Math.min(0.05,(now-last)/1000); last=now;
