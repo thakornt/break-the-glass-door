@@ -157,7 +157,7 @@ details summary{cursor:pointer;font-family:var(--f-display);font-weight:600;font
     <div class="label">บันทึกการชนของกระจกบานนี้</div>
     <div class="tablewrap logwrap" id="logWrap">
       <table>
-        <thead><tr><th>#</th><th>วัตถุ / ด้าน</th><th>v (m/s)</th><th>E (J)</th><th>F สูงสุด (kN)</th><th>σ สูงสุด (MPa)</th><th>ห่างรอยเดิม</th><th>รอยลึกสุด / ลึกที่ทำให้แตก</th><th>วัตถุ</th><th>กระจก</th><th>แตกครั้งถัดไป: จุดเดิม / จุดใหม่</th></tr></thead>
+        <thead><tr><th>#</th><th>วัตถุ / ด้าน</th><th>v (m/s)</th><th>E (J)</th><th>F สูงสุด (kN)</th><th>σ สูงสุด (MPa)</th><th>จุดชน (จากขอบซ้าย · สูงจากพื้น)</th><th>รอยร้าว (ลึกสุด / ลึกที่ทำให้แตก)</th><th>วัตถุ</th><th>กระจก</th><th>แตกครั้งถัดไป: จุดเดิม / จุดใหม่</th></tr></thead>
         <tbody id="log"><tr><td colspan="11" class="cap">ยังไม่มีการชน</td></tr></tbody>
       </table>
     </div>
@@ -227,7 +227,7 @@ function resize(){
 const X=x=>x*S, Yp=y=>side.height-y*S;
 
 // ---------- glass state ----------
-let glass, hidden, history, broken, shards, glassHits, marks=[];
+let glass, hidden, history, broken, shards, glassHits, marks=[], lastUV={u:null,v:null};
 function readGlass(){const [ty,t]=$('glassSel').value.split(':');return {type:ty,t:+t/1000};}
 function newGlass(){
   const g=readGlass(); glass={type:g.type,t:g.t,flaws:[]}; marks=[]; hidden=sampleGlassStrength(g.type); hidden.cells={};
@@ -391,12 +391,12 @@ function step(dt){
 function impact(o,ys){
   if(o.held) release(); // hitting the door ends the drag
   o.lastHit=simT;
-  const v=(ys-PANEL.y0)/PANEL.b, u=aimU();
+  const v=(ys-PANEL.y0)/PANEL.b, u=aimU(); lastUV={u,v};
   const face=faceOf(o);
   const v0=o.vx;
   if(v<0.01||v>0.99){ // frame
     o.vx=-0.25*v0;
-    logRow({name:o.def.name,face:face.label,v0,E:0.5*massOf(o)*feffOf(o)*v0*v0,frame:true});
+    logRow({name:o.def.name,face:face.label,v0,E:0.5*massOf(o)*feffOf(o)*v0*v0,frame:true,u,v});
     setVerdict('ชนกรอบประตู ไม่ใช่กระจก','warn','ยกให้จุดชนอยู่ในช่วงความสูงของกระจก');
     return;
   }
@@ -481,15 +481,16 @@ function showResult(o,face,spec,r,pNext,nearMM){
     $('dmgBar').style.background=maxFlaw/lim>0.75?css('--crit'):css('--warn');
   } else $('dmgWrap').hidden=true;
   const maxF=maxFlaw;
-  logRow({name:o.def.name,face:spec.label,v0:r.v0,E:r.Ein,F:r.Fmax,sig:r.sigMax,flaw:maxF,near:nearMM,obj:objState,broken:r.glassBroken,p:pNext&&pNext.p,pf:pNext&&pNext.pFresh});
+  logRow({name:o.def.name,face:spec.label,v0:r.v0,E:r.Ein,F:r.Fmax,sig:r.sigMax,flaw:maxF,near:nearMM,u:lastUV.u,v:lastUV.v,obj:objState,broken:r.glassBroken,p:pNext&&pNext.p,pf:pNext&&pNext.pFresh});
 }
 function logRow(d){
   const tb=$('log'), wrap=$('logWrap'); const atBottom=wrap.scrollHeight-wrap.scrollTop-wrap.clientHeight<24; if(tb.querySelector('td[colspan]'))tb.innerHTML='';
   const lim=glass.type==='tempered'?0.21*glass.t:0.8*glass.t;
-  const nearTxt=d.near==null?'–':(d.near<1000?fmt(d.near,0)+' มม.':'>1 ม.')+(d.near!=null&&d.near<=12?' ✓':'');
+  const posTxt=d.u==null?'–':`${fmt(d.u*PANEL.a*100,0)} ซม. · ${fmt(PANEL.y0+d.v*PANEL.b,2)} ม.`;
+  const crackTxt=!d.flaw?'ไม่มี':`${fmt(d.flaw*1000,2)} / ${fmt(lim*1000,1)} มม.`+(d.near!=null&&d.near<=12?' · โดนรอยเดิม':'');
   const n=tb.children.length+1;
   const glassTxt=d.frame?'<span class="warn">ชนกรอบ</span>':d.broken?'<span class="crit">แตก</span>':'<span class="ok">ไม่แตก</span>';
-  tb.insertAdjacentHTML('beforeend',`<tr><td>${n}</td><td>${d.name}<br><span class="cap">${d.face}</span></td><td class="mono">${fmt(d.v0,2)}</td><td class="mono">${fmt(d.E,0)}</td><td class="mono">${d.frame?'–':fmt(d.F/1000,2)}</td><td class="mono">${d.frame?'–':fmt(d.sig/1e6,0)}</td><td class="mono">${d.frame?'–':nearTxt}</td><td class="mono">${d.flaw?fmt(d.flaw*1000,2)+' / '+fmt(lim*1000,1)+' มม.':'–'}</td><td>${d.obj||'–'}</td><td>${glassTxt}</td><td class="mono">${d.p!=null&&!d.broken&&!d.frame?fmt(d.p*100,0)+'% / '+fmt(d.pf*100,0)+'%':'–'}</td></tr>`);
+  tb.insertAdjacentHTML('beforeend',`<tr><td>${n}</td><td>${d.name}<br><span class="cap">${d.face}</span></td><td class="mono">${fmt(d.v0,2)}</td><td class="mono">${fmt(d.E,0)}</td><td class="mono">${d.frame?'–':fmt(d.F/1000,2)}</td><td class="mono">${d.frame?'–':fmt(d.sig/1e6,0)}</td><td class="mono">${posTxt}</td><td class="mono">${d.frame?'–':crackTxt}</td><td>${d.obj||'–'}</td><td>${glassTxt}</td><td class="mono">${d.p!=null&&!d.broken&&!d.frame?fmt(d.p*100,0)+'% / '+fmt(d.pf*100,0)+'%':'–'}</td></tr>`);
   if(atBottom) wrap.scrollTop=wrap.scrollHeight;
 }
 
