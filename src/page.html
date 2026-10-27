@@ -75,6 +75,8 @@ label.chk{display:flex;gap:8px;align-items:center;font-size:14px;cursor:pointer}
 .meter{height:8px;border-radius:4px;background:var(--bg);border:1px solid var(--line);overflow:hidden}
 .meter i{display:block;height:100%;background:var(--warn);width:0}
 .tablewrap{overflow-x:auto}
+.logwrap{max-height:340px;overflow-y:auto;border:1px solid var(--line);border-radius:8px}
+.logwrap thead th{position:sticky;top:0;background:var(--panel);z-index:1}
 table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
 th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
 th{font-weight:600;color:var(--muted);font-size:12px}
@@ -153,10 +155,10 @@ details summary{cursor:pointer;font-family:var(--f-display);font-weight:600;font
 
   <section class="box">
     <div class="label">บันทึกการชนของกระจกบานนี้</div>
-    <div class="tablewrap">
+    <div class="tablewrap logwrap" id="logWrap">
       <table>
-        <thead><tr><th>#</th><th>วัตถุ / ด้าน</th><th>v (m/s)</th><th>E (J)</th><th>F สูงสุด (kN)</th><th>σ สูงสุด (MPa)</th><th>รอยร้าวสะสม</th><th>วัตถุ</th><th>กระจก</th><th>โอกาสแตกถ้าตีซ้ำแบบเดิม</th></tr></thead>
-        <tbody id="log"><tr><td colspan="10" class="cap">ยังไม่มีการชน</td></tr></tbody>
+        <thead><tr><th>#</th><th>วัตถุ / ด้าน</th><th>v (m/s)</th><th>E (J)</th><th>F สูงสุด (kN)</th><th>σ สูงสุด (MPa)</th><th>ห่างรอยเดิม</th><th>รอยลึกสุด / ลึกที่ทำให้แตก</th><th>วัตถุ</th><th>กระจก</th><th>โอกาสแตกในครั้งถัดไป</th></tr></thead>
+        <tbody id="log"><tr><td colspan="11" class="cap">ยังไม่มีการชน</td></tr></tbody>
       </table>
     </div>
   </section>
@@ -231,7 +233,7 @@ function newGlass(){
   const g=readGlass(); glass={type:g.type,t:g.t,flaws:[]}; marks=[]; hidden=sampleGlassStrength(g.type);
   history=[]; broken=null; shards=[]; glassHits=0;
   if(typeof fire!=='undefined'){fire.front=0.3;fire.parts=[];fire.smoke=[];}
-  $('log').innerHTML='<tr><td colspan="10" class="cap">ยังไม่มีการชน</td></tr>';
+  $('log').innerHTML='<tr><td colspan="11" class="cap">ยังไม่มีการชน</td></tr>';
   $('verdict').textContent='ติดตั้งกระจกบานใหม่แล้ว ลากวัตถุไปชนได้เลย';
   $('readout').innerHTML=''; $('dmgWrap').hidden=true;
   const ch=g.type==='tempered'?'กำลังรับแรงดัดตามมาตรฐาน EN 12150: 120 MPa (ค่า 5% ล่าง)':'กำลังรับแรงดัดตามมาตรฐาน EN 572: 45 MPa (ค่า 5% ล่าง)';
@@ -398,6 +400,7 @@ function impact(o,ys){
     setVerdict('ชนกรอบประตู ไม่ใช่กระจก','warn','ยกให้จุดชนอยู่ในช่วงความสูงของกระจก');
     return;
   }
+  let nearMM=null; for(const f of glass.flaws){const d=Math.hypot((f.u-u)*PANEL.a,(f.v-v)*PANEL.b)*1000; if(nearMM==null||d<nearMM)nearMM=d;}
   const spec=o.st.casterBroken?NEXT['chair-base']:face;
   const stObj=o.st.casterBroken?(o.st.sub||(o.st.sub={})):o.st;
   const me=massOf(o)*feffOf(o);
@@ -421,7 +424,7 @@ function impact(o,ys){
   } else {
     o.vx=Math.min(r.vOut,-0.05*v0); if(o.held)o.vx*=0.6;
   }
-  showResult(o,face,spec,r,pNext);
+  showResult(o,face,spec,r,pNext,nearMM);
   renderFaces();
 }
 function makeFrags(o){const p=pose(o);o.frags=[];for(let i=0;i<9;i++)o.frags.push({x:o.x+p.w*Math.random(),y:o.y+p.h*Math.random(),vx:-1-Math.random()*2,vy:Math.random()*2,s:0.01+Math.random()*0.02});}
@@ -435,7 +438,7 @@ function makeShards(){
 // ---------- readouts ----------
 const fmt=(x,d=1)=>Number.isFinite(x)?x.toFixed(d):'–';
 function setVerdict(txt,cls,sub){$('verdict').innerHTML=`<span class="${cls}">${txt}</span>`+(sub?`<span class="pill ${cls}">${sub}</span>`:'');}
-function showResult(o,face,spec,r,pNext){
+function showResult(o,face,spec,r,pNext,nearMM){
   const t=glass.t, dc=0.21*t, tempered=glass.type==='tempered';
   const maxFlaw=glass.flaws.reduce((a,f)=>Math.max(a,f.c),0);
   if(r.glassBroken) setVerdict(tempered?'กระจกแตกทั้งบาน':'กระจกแตก','crit',r.breakCause);
@@ -476,13 +479,16 @@ function showResult(o,face,spec,r,pNext){
     $('dmgBar').style.background=maxFlaw/lim>0.75?css('--crit'):css('--warn');
   } else $('dmgWrap').hidden=true;
   const maxF=maxFlaw;
-  logRow({name:o.def.name,face:spec.label,v0:r.v0,E:r.Ein,F:r.Fmax,sig:r.sigMax,flaw:maxF,obj:objState,broken:r.glassBroken,p:pNext&&pNext.p});
+  logRow({name:o.def.name,face:spec.label,v0:r.v0,E:r.Ein,F:r.Fmax,sig:r.sigMax,flaw:maxF,near:nearMM,obj:objState,broken:r.glassBroken,p:pNext&&pNext.p});
 }
 function logRow(d){
-  const tb=$('log'); if(tb.querySelector('td[colspan]'))tb.innerHTML='';
+  const tb=$('log'), wrap=$('logWrap'); const atBottom=wrap.scrollHeight-wrap.scrollTop-wrap.clientHeight<24; if(tb.querySelector('td[colspan]'))tb.innerHTML='';
+  const lim=glass.type==='tempered'?0.21*glass.t:0.8*glass.t;
+  const nearTxt=d.near==null?'–':(d.near<1000?fmt(d.near,0)+' มม.':'>1 ม.')+(d.near!=null&&d.near<=12?' ✓':'');
   const n=tb.children.length+1;
   const glassTxt=d.frame?'<span class="warn">ชนกรอบ</span>':d.broken?'<span class="crit">แตก</span>':'<span class="ok">ไม่แตก</span>';
-  tb.insertAdjacentHTML('beforeend',`<tr><td>${n}</td><td>${d.name}<br><span class="cap">${d.face}</span></td><td class="mono">${fmt(d.v0,2)}</td><td class="mono">${fmt(d.E,0)}</td><td class="mono">${d.frame?'–':fmt(d.F/1000,2)}</td><td class="mono">${d.frame?'–':fmt(d.sig/1e6,0)}</td><td class="mono">${d.flaw?fmt(d.flaw*1000,2)+' มม.':'–'}</td><td>${d.obj||'–'}</td><td>${glassTxt}</td><td class="mono">${d.p!=null&&!d.broken&&!d.frame?fmt(d.p*100,0)+'%':'–'}</td></tr>`);
+  tb.insertAdjacentHTML('beforeend',`<tr><td>${n}</td><td>${d.name}<br><span class="cap">${d.face}</span></td><td class="mono">${fmt(d.v0,2)}</td><td class="mono">${fmt(d.E,0)}</td><td class="mono">${d.frame?'–':fmt(d.F/1000,2)}</td><td class="mono">${d.frame?'–':fmt(d.sig/1e6,0)}</td><td class="mono">${d.frame?'–':nearTxt}</td><td class="mono">${d.flaw?fmt(d.flaw*1000,2)+' / '+fmt(lim*1000,1)+' มม.':'–'}</td><td>${d.obj||'–'}</td><td>${glassTxt}</td><td class="mono">${d.p!=null&&!d.broken&&!d.frame?fmt(d.p*100,0)+'%':'–'}</td></tr>`);
+  if(atBottom) wrap.scrollTop=wrap.scrollHeight;
 }
 
 // ---------- drawing ----------
