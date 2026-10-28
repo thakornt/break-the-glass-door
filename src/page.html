@@ -115,7 +115,7 @@ details summary{cursor:pointer;font-family:var(--f-display);font-weight:600;font
     <div class="box">
       <div class="label">วัตถุ</div>
       <div class="palette" id="palette"></div>
-      <div class="row" id="variantWrap" hidden><label class="label" for="variantSel">น้ำหนัก</label><select id="variantSel" aria-label="น้ำหนัก"></select></div>
+      <div class="row" id="variantWrap" hidden><label class="label" for="variantSel" id="variantLbl">น้ำหนัก</label><select id="variantSel"></select></div>
       <div class="label" id="facesLabel">ด้านที่ใช้ชน</div>
       <div class="chips" id="faces"></div>
       <div class="cap" id="objhint"></div>
@@ -195,6 +195,7 @@ details summary{cursor:pointer;font-family:var(--f-display);font-weight:600;font
           <li>การโตของรอยร้าวเมื่อตีจุดเดิมซ้ำ (บิ่นและล้าจากการสัมผัส) ใช้ 25% ของความลึกที่ครั้งนั้นสร้างได้ เป็นค่าสมมติ</li>
           <li>มวลที่มีผล ความแข็งโครงสร้าง และกำลังยุบของวัตถุแต่ละชิ้นเป็นค่าประมาณทางวิศวกรรม ไม่ได้วัดจากของจริง</li>
           <li>มือถือ: น้ำหนัก ขนาด และวัสดุเฟรมมาจากหน้าสเปกของผู้ผลิต (Apple, Samsung) ส่วนรัศมีมุมเครื่องเป็นค่าประมาณ</li>
+          <li>MacBook: น้ำหนักและขนาดจากหน้าสเปกของ Apple (MacBook Pro M5 และ MacBook Air M5 ปี 2026) ตอนกางจอ ฝาจอต่อกับตัวเครื่องผ่านบานพับ มวลที่ส่งแรงถึงกระจกจึงเหลือราว 35% ตอนพับ ตัวเครื่องเป็นอะลูมิเนียมผนังบางที่มุมยุบได้และตัวเครื่องงอได้ ค่าทั้งสองนี้เป็นค่าประมาณ</li>
           <li>ความเสียหายสะสมของมือถือ: ทุกครั้งที่ชน มือถือรับงานจากการยุบของเฟรมบวก 40% ของพลังงานที่ไม่ได้เด้งกลับ ครบราว 26–32 J ถือว่าพังยับ เฟรมผนังบางจึงยุบที่แรงดันต่ำกว่าโลหะตัน (อะลูมิเนียม ~300 MPa, ไทเทเนียม ~500 MPa) ทั้งหมดนี้เป็นค่าสมมติ</li>
           <li>จอ LED คือจอ LCD ที่ใช้ไฟ LED ส่องหลัง ความต่างในโมเดลจึงอยู่ที่น้ำหนัก ความบาง และวัสดุขาตั้ง ไม่ใช่ชนิดของแผงจอ</li>
           <li>คนออกแรงลากได้สูงสุด 450 N ใส่พลังงานให้วัตถุได้ไม่เกิน 150 J และขยับมือได้ไม่เกิน 14 m/s</li>
@@ -259,7 +260,9 @@ function pose(o){
     case 'chair-back': return {w:0.65,h:1.0,sx:0.65,sy:0.78};
     case 'ext-side': return {w:0.17,h:0.55,sx:0.17,sy:0.3};
     case 'ext-rim': return {w:0.55,h:0.17,sx:0.55,sy:0.085};
-    default: { const fc=faceOf(o), vr=varOf(o), w=vr?.w??d.w, h=fc.h??vr?.h??d.h; return {w,h,sx:w*(fc.fx??1),sy:h*(fc.fy??1)}; }
+    default: { const fc=faceOf(o), vr=varOf(o);
+      if(d.shape==='laptop'){ const w=vr.w, h=fc.pose==='open'?vr.h*0.93+0.035:vr.h; return {w,h,sx:w,sy:h}; }
+      const w=vr?.w??d.w, h=fc.h??vr?.h??d.h; return {w,h,sx:w*(fc.fx??1),sy:h*(fc.fy??1)}; }
   }
 }
 function spawn(def){
@@ -276,7 +279,7 @@ function renderPalette(){
 function renderFaces(){
   if(!cur){$('faces').innerHTML='';return;}
   $('facesLabel').textContent=cur.def.faces.some(f=>f.mass)?'จำนวนแผ่น (ชนด้วยมุมกอง)':'ด้านที่ใช้ชน';
-  $('variantWrap').hidden=!cur.def.variants;
+  $('variantWrap').hidden=!cur.def.variants; $('variantLbl').textContent=cur.def.variantLabel||'น้ำหนัก';
   if(cur.def.variants){const sel=$('variantSel'); sel.innerHTML=cur.def.variants.map((v,i)=>`<option value="${i}" ${i===cur.vi?'selected':''}>${v.label}</option>`).join(''); sel.onchange=()=>{cur.vi=+sel.value; cur.st={}; const pz=pose(cur); cur.x=Math.min(cur.x,WORLD.doorX-pz.w-0.05); renderFaces();};}
   $('faces').innerHTML=cur.def.faces.map((f,i)=>`<button class="chip" data-i="${i}" aria-pressed="${i===cur.fi}">${f.label}</button>`).join('');
   $('faces').querySelectorAll('.chip').forEach(b=>b.onclick=()=>{if(cur.def.faces[+b.dataset.i].mass&&+b.dataset.i!==cur.fi){cur.st={};} cur.fi=+b.dataset.i;const p=pose(cur);cur.x=Math.min(cur.x,WORLD.doorX-p.w-0.05);renderFaces();});
@@ -569,6 +572,39 @@ function drawObj(c,o){
     c.beginPath(); c.ellipse(W*0.28,-H*0.9,W*0.12,H*0.12,0,0,7); c.ellipse(W*0.72,-H*0.9,W*0.12,H*0.12,0,0,7); c.fill(); c.stroke();
     c.fillStyle=css('--ink'); c.beginPath(); c.arc(W*0.38,-H*0.5,Math.max(1.5,W*0.04),0,7); c.arc(W*0.62,-H*0.5,Math.max(1.5,W*0.04),0,7); c.fill();
     c.beginPath(); c.arc(W*0.5,-H*0.38,W*0.07,0.2,Math.PI-0.2); c.stroke();
+    c.restore(); markStrike(c,o,p); return;
+  }
+  if(shp==='laptop'){
+    const fc=faceOf(o), wear=o.st.wear||0, dent=Math.min(H*0.18,wear*H*0.22);
+    const body=col, edge=css('--ink');
+    const lidPath=(x0,y0,w,h)=>{const r=Math.min(w,h)*0.035; c.beginPath(); c.moveTo(x0+r,y0); c.lineTo(x0+w-dent,y0); c.lineTo(x0+w,y0+dent); c.lineTo(x0+w,y0+h-r); c.quadraticCurveTo(x0+w,y0+h,x0+w-r,y0+h); c.lineTo(x0+r,y0+h); c.quadraticCurveTo(x0,y0+h,x0,y0+h-r); c.lineTo(x0,y0+r); c.quadraticCurveTo(x0,y0,x0+r,y0); c.closePath();};
+    if(fc.pose==='open'){
+      const lidH=H-0.035*S, deckH=H-lidH;
+      // keyboard deck seen in perspective under the open lid
+      c.fillStyle=body; c.beginPath(); c.moveTo(W*0.04,-deckH); c.lineTo(W*0.96,-deckH); c.lineTo(W,0); c.lineTo(0,0); c.closePath(); c.fill(); c.stroke();
+      c.fillStyle='#16181b'; for(let i=0;i<3;i++){const yy=-deckH+deckH*(0.15+i*0.22), inset=W*(0.06-0.012*i); c.fillRect(inset+W*0.04,yy,W-2*inset-W*0.08,deckH*0.14);}
+      c.fillStyle='rgba(255,255,255,0.12)'; c.fillRect(W*0.38,-deckH*0.22,W*0.24,deckH*0.16);
+      // lid with thin bezel, notch and screen
+      c.fillStyle=body; lidPath(0,-H,W,lidH); c.fill(); c.stroke();
+      const bz=Math.max(1.5,W*0.018); screen(c,bz,-H+bz,W-2*bz-dent*0.4,lidH-2*bz,o,o.def.screen);
+      c.fillStyle='#050607'; rr(c,W*0.45,-H+bz,W*0.1,Math.max(2,lidH*0.035),2); c.fill();
+      if(wear>=1){c.strokeStyle=edge;c.lineWidth=1.2;c.beginPath();c.moveTo(0,-H+lidH*0.6);c.lineTo(W*0.35,-H+lidH*0.52);c.stroke();}
+    } else {
+      // closed lid seen from the top: plain aluminium with a centred emblem
+      c.fillStyle=body; lidPath(0,-H,W,H); c.fill(); c.stroke();
+      const g=c.createLinearGradient(0,-H,W,0); g.addColorStop(0,'rgba(255,255,255,0.10)'); g.addColorStop(0.5,'rgba(255,255,255,0)'); g.addColorStop(1,'rgba(0,0,0,0.12)');
+      c.fillStyle=g; lidPath(0,-H,W,H); c.fill();
+      const er=Math.min(W,H)*0.09; const eg=c.createRadialGradient(W/2-er*0.3,-H/2-er*0.3,er*0.1,W/2,-H/2,er);
+      eg.addColorStop(0,'rgba(255,255,255,0.85)'); eg.addColorStop(1,'rgba(150,155,165,0.7)');
+      c.fillStyle=eg; c.beginPath(); c.ellipse(W/2,-H/2,er*0.85,er,0,0,7); c.fill();
+      if(wear>0){ if(!o.st.seed) o.st.seed=1+Math.floor(Math.random()*1e9); const R=rng(o.st.seed);
+        c.strokeStyle='rgba(255,255,255,0.55)'; c.lineWidth=1; const n=2+Math.floor(wear*10);
+        for(let i=0;i<n;i++){const x0=W*(0.65+R()*0.35), y0=-H*(0.75+R()*0.25); c.beginPath(); c.moveTo(x0,y0); c.lineTo(x0-W*(0.05+R()*0.15),y0+H*(R()*0.2)); c.stroke();}
+        if(wear>=0.25){ c.strokeStyle='rgba(0,0,0,0.35)'; c.lineWidth=2; c.beginPath(); c.moveTo(W*0.55,-H); c.quadraticCurveTo(W*0.75,-H*0.7,W,-H*0.55); c.stroke(); }
+        if(wear>=0.75){ c.strokeStyle='rgba(0,0,0,0.45)'; c.beginPath(); c.moveTo(0,-H*0.35); c.quadraticCurveTo(W*0.5,-H*(0.45+wear*0.1),W,-H*0.3); c.stroke(); } }
+      // hinge strip at the bottom edge
+      c.fillStyle='rgba(0,0,0,0.35)'; c.fillRect(W*0.08,-Math.max(2,H*0.03),W*0.84,Math.max(2,H*0.03));
+    }
     c.restore(); markStrike(c,o,p); return;
   }
   if(shp==='monitor'){

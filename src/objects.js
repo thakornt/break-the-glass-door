@@ -72,6 +72,19 @@ const OBJECTS = [
     faces: [
       { id: 'squishy-body', label: 'ตัวตุ๊กตา (โฟม PU คืนตัวช้า)', fy: 0.5, kind: 'linear', K: 2.5e3, rFixed: 0.045, area: 'fixed', pc: Infinity, hard: false, mat: 'โฟม PU' }
     ] },
+  // Laptops: weight and size from Apple tech specs (MacBook Pro M5 / MacBook Air M5, 2026)
+  { id: 'mbp', name: 'MacBook Pro (M5, 2026)', shape: 'laptop', screen: 'led', color: '#2f3136', mass: 1.55, feff: 0.85, w: 0.3126, h: 0.2212, vi: 0, variantLabel: 'รุ่น',
+    variants: [{ label: '14 นิ้ว M5 · 1.55 kg', mass: 1.55, w: 0.3126, h: 0.2212, t: 0.0155 }, { label: '14 นิ้ว M5 Pro · 1.60 kg', mass: 1.6, w: 0.3126, h: 0.2212, t: 0.0155 }, { label: '14 นิ้ว M5 Max · 1.62 kg', mass: 1.62, w: 0.3126, h: 0.2212, t: 0.0155 }, { label: '16 นิ้ว M5 Pro · 2.14 kg', mass: 2.14, w: 0.3557, h: 0.2481, t: 0.0168 }, { label: '16 นิ้ว M5 Max · 2.15 kg', mass: 2.15, w: 0.3557, h: 0.2481, t: 0.0168 }],
+    faces: [
+      { id: 'mbp-open', label: 'กางจอ · ฟาดด้วยมุมฝาจอ', pose: 'open', feff: 0.35, kind: 'hertz', Eo: 70e9, nuo: 0.33, R: 0.004, area: 'sphere', pc: 0.3e9, hard: true, wreckE: 40, stages: [[0.0001, 'ฝาจอบุบที่มุม'], [0.2, 'จอร้าวจากมุม'], [0.4, 'จอร้าวลาม มีเส้นสีขึ้น'], [0.65, 'ปื้นดำลามจากมุม แสงไฟหลังรั่ว'], [0.85, 'ครึ่งจอดับ บานพับหลวม'], [1, 'จอดับสนิท ฝาจองอ']], mat: 'อะลูมิเนียม (ฝาจอ)', mtip: 0.15, ks: 1e6 },
+      { id: 'mbp-closed', label: 'พับเครื่อง · ฟาดด้วยมุมเครื่อง', pose: 'closed', feff: 0.85, kind: 'hertz', Eo: 70e9, nuo: 0.33, R: 0.007, area: 'sphere', pc: 0.12e9, hard: true, wreckE: 80, stages: [[0.0001, 'มุมเครื่องบุบ'], [0.25, 'ฝาบิด ปิดไม่สนิท'], [0.5, 'จอด้านในร้าว'], [0.75, 'ตัวเครื่องงอ จอด้านในแตก'], [1, 'พังยับ ใช้งานไม่ได้']], mat: 'อะลูมิเนียม unibody', mtip: 0.3, ks: 2e6 }
+    ] },
+  { id: 'mba', name: 'MacBook Air (M5, 2026)', shape: 'laptop', screen: 'led', color: '#c3c9d1', mass: 1.23, feff: 0.85, w: 0.3041, h: 0.215, vi: 0, variantLabel: 'รุ่น',
+    variants: [{ label: '13 นิ้ว M5 · 1.23 kg', mass: 1.23, w: 0.3041, h: 0.215, t: 0.0113 }, { label: '15 นิ้ว M5 · 1.51 kg', mass: 1.51, w: 0.3404, h: 0.2376, t: 0.0115 }],
+    faces: [
+      { id: 'mba-open', label: 'กางจอ · ฟาดด้วยมุมฝาจอ', pose: 'open', feff: 0.35, kind: 'hertz', Eo: 70e9, nuo: 0.33, R: 0.004, area: 'sphere', pc: 0.3e9, hard: true, wreckE: 32, stages: [[0.0001, 'ฝาจอบุบที่มุม'], [0.2, 'จอร้าวจากมุม'], [0.4, 'จอร้าวลาม มีเส้นสีขึ้น'], [0.65, 'ปื้นดำลามจากมุม แสงไฟหลังรั่ว'], [0.85, 'ครึ่งจอดับ บานพับหลวม'], [1, 'จอดับสนิท ฝาจองอ']], mat: 'อะลูมิเนียม (ฝาจอ)', mtip: 0.15, ks: 1e6 },
+      { id: 'mba-closed', label: 'พับเครื่อง · ฟาดด้วยมุมเครื่อง', pose: 'closed', feff: 0.85, kind: 'hertz', Eo: 70e9, nuo: 0.33, R: 0.007, area: 'sphere', pc: 0.12e9, hard: true, wreckE: 64, stages: [[0.0001, 'มุมเครื่องบุบ'], [0.25, 'ฝาบิด ปิดไม่สนิท'], [0.5, 'จอด้านในร้าว'], [0.75, 'ตัวเครื่องงอ จอด้านในแตก'], [1, 'พังยับ ใช้งานไม่ได้']], mat: 'อะลูมิเนียม unibody', mtip: 0.3, ks: 2e6 }
+    ] },
   // Phones: weight, size and frame material from manufacturer spec pages (Oct 2026)
   { id: 'ip18pro', name: 'iPhone 18 Pro', shape: 'phone', screen: 'oled', mass: 0.211, feff: 0.9, w: 0.150, h: 0.0719, color: '#9aa3ab',
     faces: [

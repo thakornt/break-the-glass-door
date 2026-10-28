@@ -44,7 +44,7 @@ node test/check.js
 
 ## วัตถุ
 
-โต๊ะ 3 แบบ (ไม้สัก, plywood, ปาร์ติเคิลบอร์ด), เก้าอี้ออฟฟิศ, ถังดับเพลิง, กองกระดาษ A4 (500, 1,000, 2,000, 5,000 แผ่น), แก้วกาแฟ, ที่เย็บกระดาษ, จอ LCD และ LED, เมาส์, คีย์บอร์ด, ปลั๊กพ่วง, ดัมบ์เบลล์ (1–20 kg), ตุ๊กตาสกุชชี่ และมือถือ 5 รุ่น
+โต๊ะ 3 แบบ (ไม้สัก, plywood, ปาร์ติเคิลบอร์ด), เก้าอี้ออฟฟิศ, ถังดับเพลิง, กองกระดาษ A4 (500, 1,000, 2,000, 5,000 แผ่น), แก้วกาแฟ, ที่เย็บกระดาษ, จอ LCD และ LED, เมาส์, คีย์บอร์ด, ปลั๊กพ่วง, ดัมบ์เบลล์ (1–20 kg), ตุ๊กตาสกุชชี่, MacBook Pro และ MacBook Air (M5, 2026) และมือถือ 5 รุ่น
 
 | มือถือ | น้ำหนัก | ขนาด (มม.) | เฟรม |
 |---|---|---|---|
@@ -54,7 +54,14 @@ node test/check.js
 | Galaxy Z Fold8 (พับ) | 201 g | 123.9 × 81.9 × 9.7 | Armor Aluminum |
 | iPhone Duo (พับ) | 254 g | 117.8 × 84.1 × 11.3 | ไทเทเนียมเกรด 5 |
 
-ที่มา: [Apple iPhone 18 Pro specs](https://www.apple.com/iphone-18-pro/specs/), [Apple iPhone Duo specs](https://support.apple.com/en-gb/148588), [Galaxy S26 Ultra (Google Fi)](https://fi.google.com/about/phones/samsung-galaxy-s26-ultra-specs), [Galaxy Z Fold8 (Google Fi)](https://fi.google.com/about/phones/samsung-galaxy-z-fold8-specs?hl=es)
+| MacBook | น้ำหนัก | ขนาด (ซม.) |
+|---|---|---|
+| Pro 14" M5 / M5 Pro / M5 Max | 1.55 / 1.60 / 1.62 kg | 31.26 × 22.12 × 1.55 |
+| Pro 16" M5 Pro / M5 Max | 2.14 / 2.15 kg | 35.57 × 24.81 × 1.68 |
+| Air 13" M5 | 1.23 kg | 30.41 × 21.5 × 1.13 |
+| Air 15" M5 | 1.51 kg | 34.04 × 23.76 × 1.15 |
+
+ที่มา: [Apple iPhone 18 Pro specs](https://www.apple.com/iphone-18-pro/specs/), [Apple iPhone Duo specs](https://support.apple.com/en-gb/148588), [Galaxy S26 Ultra (Google Fi)](https://fi.google.com/about/phones/samsung-galaxy-s26-ultra-specs), [Galaxy Z Fold8 (Google Fi)](https://fi.google.com/about/phones/samsung-galaxy-z-fold8-specs?hl=es), [MacBook Pro specs](https://www.apple.com/za/macbook-pro/specs), [MacBook Air 13" M5](https://support.apple.com/126320), [MacBook Air 15" M5](https://support.apple.com/126321)
 
 ## ค่าที่เป็นสมมติฐาน
 
