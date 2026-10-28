@@ -200,6 +200,15 @@ details summary{cursor:pointer;font-family:var(--f-display);font-weight:600;font
           <li>จอ LED คือจอ LCD ที่ใช้ไฟ LED ส่องหลัง ความต่างในโมเดลจึงอยู่ที่น้ำหนัก ความบาง และวัสดุขาตั้ง ไม่ใช่ชนิดของแผงจอ</li>
           <li>คนออกแรงลากได้สูงสุด 450 N ใส่พลังงานให้วัตถุได้ไม่เกิน 150 J และขยับมือได้ไม่เกิน 14 m/s</li>
         </ul>
+        <h3>การกระแทกพื้น</h3>
+        <ul>
+          <li>พื้นเป็นกระเบื้องบนพื้นคอนกรีต (แข็งมาก ไม่ยุบ) แต่ละวัตถุมีส่วนที่ลงพื้นของตัวเอง เช่น ขาโต๊ะ ล้อเก้าอี้ ยางรองใต้ที่เย็บ ขอบเฟรมมือถือ</li>
+          <li>แรงปะทะพื้น การยุบ และการแตกของวัตถุ คิดด้วยกฎการสัมผัสชุดเดียวกับตอนชนกระจก ความเสียหายสะสมของวัตถุนับรวมกับการชนกระจก</li>
+          <li>ความเร็วเด้งขึ้นคิดจากค่าการเด้งของวัสดุ (e) หักพลังงานที่ส่วนลงพื้นยุบไป ค่า e อยู่ราว 0.1 (โฟม, กระดาษ) ถึง 0.55 (ยาง)</li>
+          <li>แรงเสียดทานตอนกระแทกพื้นเป็นแรงดล ลดความเร็วไปทางกระจกได้ไม่เกิน μ × (ความเร็วลง + ความเร็วเด้ง) ยิ่งฟาดลงแรง ความเร็วไปข้างหน้ายิ่งหายมาก ล้อเก้าอี้กลิ้งได้ μ จึงต่ำมาก (0.05) ส่วนยางรองมี μ สูง (0.6–0.8)</li>
+          <li>ตอนชนกระจก แรงเสียดทานกับผิวกระจก (μ ≈ 0.25) ลดความเร็วแนวดิ่งของวัตถุด้วยหลักเดียวกัน</li>
+          <li>ค่า e และ μ ของแต่ละคู่วัสดุเป็นค่าทางวิศวกรรมโดยประมาณ ไม่ได้วัดจากของจริง และยังไม่คิดการหมุนของวัตถุหลังเด้ง</li>
+        </ul>
         <h3>ข้อจำกัด</h3>
         <p>เป็นการจำลอง 2 มิติ ไม่คิดการชนเฉียง การหมุนของวัตถุ หรือปลายแหลมมากอย่างหัวทุบกระจกฉุกเฉิน ผลจึงเป็นแนวโน้ม คลาดเคลื่อนได้หลายเท่าในรายกรณี ความน่าจะเป็นที่แสดงมาจากการสุ่มกำลังกระจกที่ยังสอดคล้องกับการชนทุกครั้งที่ผ่านมา</p>
       </div>
@@ -380,11 +389,11 @@ function step(dt){
       const sp=Math.hypot(o.vx,o.vy); if(sp>vmax){o.vx*=vmax/sp;o.vy*=vmax/sp;}
     } else {
       o.vy-=9.81*dt;
-      if(o.y<=0.0001&&o.vy<=0){const fr=4*dt;o.vx=Math.abs(o.vx)<fr?0:o.vx-Math.sign(o.vx)*fr;}
+      if(o.y<=0.0001&&o.vy<=0){const fl=floorSpecFor(o.def,faceOf(o),o.st); const fr=(fl.mu??0.4)*9.81*dt; o.vx=Math.abs(o.vx)<fr?0:o.vx-Math.sign(o.vx)*fr;}
     }
     const prevSx=o.x+p.sx;
     o.x+=o.vx*dt; o.y+=o.vy*dt;
-    if(o.y<0){o.y=0;if(o.vy<0)o.vy=-o.vy*0.15;if(Math.abs(o.vy)<0.3)o.vy=0;}
+    if(o.y<0){o.y=0; if(o.vy<0){ const vn=-o.vy; if(vn>0.3){ floorHit(o,vn); if(o.destroyed) continue; } else o.vy=0; }}
     if(o.x<0){o.x=0;o.vx=Math.abs(o.vx)*0.2;}
     if(o.y+p.h>WORLD.h){o.y=WORLD.h-p.h;o.vy=Math.min(0,o.vy);}
     // door plane
@@ -398,6 +407,34 @@ function step(dt){
   shards.forEach(s=>{s.vy-=9.81*dt;s.y+=s.vy*dt;s.x+=s.vx*dt;s.rot+=s.vr*dt;if(s.y<0.02){s.y=0.02;s.vy=0;s.vx*=0.8;s.vr=0;}});
 }
 
+// ---------- floor impact ----------
+function floorHit(o,vn){
+  const face=faceOf(o), fl=floorSpecFor(o.def,face,o.st), m=massOf(o);
+  const wearSpec=face.wreckE?face:(o.def.faces.find(f=>f.wreckE)||null);
+  const r=simulateFloorImpact({m,vn,vt:o.vx,fl,floorSt:o.st.floor||(o.st.floor={}),st:o.st,wearSpec});
+  o.vx=r.vtOut; o.vy=r.vnOut<0.3?0:r.vnOut;
+  const loud=vn>1.5&&simT-(o.lastFloor||-9)>0.15;
+  if(vn>1.5&&o.held) release(); // a hard slam knocks the object out of the hand
+  if(r.broke){ if(fl.onBreak==='caster') o.st.casterBroken=true; else { o.destroyed=true; makeFrags(o); } }
+  if(!loud) return;
+  o.lastFloor=simT;
+  const objTxt=r.broke?(fl.onBreak==='caster'?'ล้อหัก':'แตก'):(r.objDamaged||o.st.damaged||(r.crushAdd>0.0005?`ยุบ ${fmt(r.crushAdd*1000)} มม.`:'ปกติ'));
+  logRow({name:o.def.name+(varOf(o)?' '+varOf(o).label:''),face:'กระแทกพื้น · '+fl.label,v0:vn,E:r.KE,F:r.Fmax,floor:r,obj:objTxt});
+  setVerdict('กระแทกพื้น','warn',`ความเร็วเข้าหากระจก ${fmt(Math.abs(r.vtIn),2)} → ${fmt(Math.abs(r.vtOut),2)} m/s · เด้งขึ้น ${fmt(r.vnOut,2)} m/s`);
+  const items=[
+    ['ส่วนที่ลงพื้น',fl.label],
+    ['ความเร็วลงพื้น',fmt(vn,2)+' m/s'],
+    ['ความเร็วเข้าหากระจก ก่อน → หลัง',`${fmt(Math.abs(r.vtIn),2)} → ${fmt(Math.abs(r.vtOut),2)} m/s`],
+    ['ความเร็วเด้งขึ้น',fmt(r.vnOut,2)+' m/s'],
+    ['แรงปะทะพื้นสูงสุด',fmt(r.Fmax/1000,2)+' kN'],
+    ['พลังงานแนวดิ่ง เข้า → เหลือ',`${fmt(r.KE,0)} → ${fmt(r.KEout,0)} J`],
+    ['การเด้งของวัสดุ (e) / แรงเสียดทาน (μ)',`${fmt(r.cor,2)} / ${fmt(r.mu,2)}`],
+    ['สภาพวัตถุ',objTxt],
+  ];
+  if(r.wear!=null) items.push(['ความเสียหายสะสมของวัตถุ',fmt(r.wear*100,0)+'% (+'+fmt(r.wearAdd*100,0)+'% ครั้งนี้)']);
+  $('readout').innerHTML=items.map(([k,v])=>`<div class="kv"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('');
+  renderFaces();
+}
 // ---------- impact ----------
 function impact(o,ys){
   if(o.held) release(); // hitting the door ends the drag
@@ -434,6 +471,8 @@ function impact(o,ys){
     makeShards(); o.vx=v0*0.45;
   } else {
     o.vx=Math.min(r.vOut,-0.05*v0); if(o.held)o.vx*=0.6;
+    // friction along the pane: limited by mu x normal impulse (glass on most materials ~0.25)
+    const dvy=Math.min(Math.abs(o.vy),0.25*(Math.abs(v0)+Math.abs(o.vx))); o.vy-=Math.sign(o.vy)*dvy;
   }
   showResult(o,face,spec,r,pNext,nearMM);
   renderFaces();
@@ -497,11 +536,12 @@ function showResult(o,face,spec,r,pNext,nearMM){
 function logRow(d){
   const tb=$('log'), wrap=$('logWrap'); const atBottom=wrap.scrollHeight-wrap.scrollTop-wrap.clientHeight<24; if(tb.querySelector('td[colspan]'))tb.innerHTML='';
   const lim=glass.type==='tempered'?0.21*glass.t:0.8*glass.t;
-  const posTxt=d.u==null?'–':`${fmt(d.u*PANEL.a*100,0)} ซม. · ${fmt(PANEL.y0+d.v*PANEL.b,2)} ม.`;
+  const posTxt=d.floor?`พื้น · เข้าหากระจก ${fmt(Math.abs(d.floor.vtIn),1)}→${fmt(Math.abs(d.floor.vtOut),1)} m/s`:d.u==null?'–':`${fmt(d.u*PANEL.a*100,0)} ซม. · ${fmt(PANEL.y0+d.v*PANEL.b,2)} ม.`;
   const crackTxt=!d.flaw?'ไม่มี':`${fmt(d.flaw*1000,2)} / ${fmt(lim*1000,1)} มม.`+(d.near!=null&&d.near<=12?' · โดนรอยเดิม':'');
   const n=tb.children.length+1;
-  const glassTxt=d.frame?'<span class="warn">ชนกรอบ</span>':d.broken?'<span class="crit">แตก</span>':'<span class="ok">ไม่แตก</span>';
-  tb.insertAdjacentHTML('beforeend',`<tr><td>${n}</td><td>${d.name}<br><span class="cap">${d.face}</span></td><td class="mono">${fmt(d.v0,2)}</td><td class="mono">${fmt(d.E,0)}</td><td class="mono">${d.frame?'–':fmt(d.F/1000,2)}</td><td class="mono">${d.frame?'–':fmt(d.sig/1e6,0)}</td><td class="mono">${posTxt}</td><td class="mono">${d.frame?'–':crackTxt}</td><td>${d.obj||'–'}</td><td>${glassTxt}</td><td class="mono">${d.p!=null&&!d.broken&&!d.frame?fmt(d.p*100,0)+'% / '+fmt(d.pf*100,0)+'%':'–'}</td></tr>`);
+  if(d.floor) d.frame=false;
+  const glassTxt=d.floor?'<span class="cap">ไม่เกี่ยว</span>':d.frame?'<span class="warn">ชนกรอบ</span>':d.broken?'<span class="crit">แตก</span>':'<span class="ok">ไม่แตก</span>';
+  tb.insertAdjacentHTML('beforeend',`<tr><td>${n}</td><td>${d.name}<br><span class="cap">${d.face}</span></td><td class="mono">${fmt(d.v0,2)}</td><td class="mono">${fmt(d.E,0)}</td><td class="mono">${d.frame?'–':fmt(d.F/1000,2)}</td><td class="mono">${d.frame||d.floor?'–':fmt(d.sig/1e6,0)}</td><td class="mono">${posTxt}</td><td class="mono">${d.frame||d.floor?'–':crackTxt}</td><td>${d.obj||'–'}</td><td>${glassTxt}</td><td class="mono">${d.p!=null&&!d.broken&&!d.frame?fmt(d.p*100,0)+'% / '+fmt(d.pf*100,0)+'%':'–'}</td></tr>`);
   if(atBottom) wrap.scrollTop=wrap.scrollHeight;
 }
 

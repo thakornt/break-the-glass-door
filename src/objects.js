@@ -109,6 +109,43 @@ const OBJECTS = [
       { id: 'ipduo-hinge', label: 'สันบานพับ (ไทเทเนียม)', fy: 0.5, kind: 'hertz', Eo: 114e9, nuo: 0.34, R: 0.0056, area: 'sphere', pc: 0.6e9, hard: true, wreckE: 32, stages: [[0.0001, 'จอนอกร้าว'], [0.25, 'มุมเฟรมบุบ บานพับฝืด'], [0.5, 'บานพับคลอน จอในย่น'], [0.75, 'เครื่องบิด จอดับ'], [1, 'พังยับ ใช้งานไม่ได้']], mat: 'ไทเทเนียม' }
     ] }
 ];
+
+// ===== Underside that meets the floor (ceramic tile on concrete) =====
+// cor: coefficient of restitution on tile, mu: friction against tile during the hit.
+// Values are typical engineering figures for each material pair (assumptions, not measured).
+// Chair: all five casters share the load on the floor, so stiffness and break load are 5x one caster.
+const FLOOR_SPECS = {
+  teak:     { label: 'ปลายขาไม้สัก 4 ขา', kind: 'hertz', Eo: 10e9, nuo: 0.3, R: 0.02, area: 'flat', A0: 0.01, pc: 35e6, cor: 0.30, mu: 0.45, feff: 1.0 },
+  ply:      { label: 'ปลายขาไม้อัด 4 ขา', kind: 'hertz', Eo: 6e9, nuo: 0.3, R: 0.02, area: 'flat', A0: 0.008, pc: 25e6, cor: 0.28, mu: 0.45, feff: 1.0 },
+  mdf:      { label: 'ขอบขาแผ่น MDF', kind: 'hertz', Eo: 2.5e9, nuo: 0.3, R: 0.01, area: 'flat', A0: 0.003, pc: 9e6, cor: 0.22, mu: 0.45, feff: 0.9 },
+  chair:    { label: 'ล้อไนลอน 5 ล้อ (กลิ้งได้)', kind: 'hertz', Eo: 14e9, nuo: 0.4, R: 0.025, area: 'sphere', pc: 70e6, breakF: 17500, onBreak: 'caster', cor: 0.35, mu: 0.05, feff: 0.6, mtip: 0.4, ks: 3e5 },
+  ext:      { label: 'ขอบก้นถังเหล็ก', kind: 'hertz', Eo: 200e9, nuo: 0.3, R: 0.004, area: 'sphere', pc: 1.05e9, cor: 0.45, mu: 0.35, feff: 0.95 },
+  paper:    { label: 'ก้นกองกระดาษ (หน้าแบน)', kind: 'hertz', Eo: 0.3e9, nuo: 0.2, R: 0.05, area: 'flat', A0: 0.06, pc: 0.6e6, cor: 0.10, mu: 0.45, feff: 0.9 },
+  mug:      { label: 'ขอบก้นแก้วเซรามิก', kind: 'hertz', Eo: 70e9, nuo: 0.22, R: 0.005, area: 'sphere', pc: Infinity, breakF: 4000, cor: 0.50, mu: 0.40, feff: 1.0 },
+  stapler:  { label: 'ยางรองใต้ที่เย็บ', kind: 'hertz', Eo: 0.01e9, nuo: 0.49, R: 0.008, area: 'sphere', pc: Infinity, cor: 0.40, mu: 0.70, feff: 0.9 },
+  lcd:      { label: 'ยางรองใต้ฐานขาตั้ง', kind: 'hertz', Eo: 0.02e9, nuo: 0.49, R: 0.01, area: 'sphere', pc: Infinity, cor: 0.15, mu: 0.60, feff: 0.6, mtip: 0.8, ks: 3e6 },
+  led:      { label: 'ยางรองใต้ฐานขาตั้ง', kind: 'hertz', Eo: 0.02e9, nuo: 0.49, R: 0.01, area: 'sphere', pc: Infinity, cor: 0.15, mu: 0.60, feff: 0.6, mtip: 0.7, ks: 3e6 },
+  mouse:    { label: 'ฐานเมาส์ (ขา PTFE ลื่น)', kind: 'hertz', Eo: 2.3e9, nuo: 0.37, R: 0.02, area: 'sphere', pc: 60e6, breakF: 1500, cor: 0.35, mu: 0.15, feff: 0.9 },
+  keyboard: { label: 'ยางรองใต้คีย์บอร์ด', kind: 'hertz', Eo: 0.02e9, nuo: 0.49, R: 0.01, area: 'sphere', pc: Infinity, damageF: 900, damageLabel: 'ปุ่มหลุด / เคสร้าว', cor: 0.20, mu: 0.60, feff: 0.55 },
+  strip:    { label: 'ก้นรางปลั๊ก (เคส PC)', kind: 'hertz', Eo: 2.4e9, nuo: 0.37, R: 0.01, area: 'sphere', pc: 25e6, cor: 0.30, mu: 0.40, feff: 0.85 },
+  dumbbell: { label: 'หน้าหกเหลี่ยมเหล็กหล่อ', kind: 'hertz', Eo: 170e9, nuo: 0.26, R: 0.01, area: 'sphere', pc: 1.0e9, cor: 0.30, mu: 0.35, feff: 0.95 },
+  squishy:  { label: 'ตัวตุ๊กตาโฟม PU', kind: 'linear', K: 2.5e3, rFixed: 0.045, area: 'fixed', pc: Infinity, cor: 0.10, mu: 0.90, feff: 0.6 },
+  ip18pro:  { label: 'ขอบเฟรมอะลูมิเนียม', kind: 'hertz', Eo: 70e9, nuo: 0.33, R: 0.004, area: 'sphere', pc: 0.3e9, cor: 0.35, mu: 0.35, feff: 0.9 },
+  ip18pm:   { label: 'ขอบเฟรมอะลูมิเนียม', kind: 'hertz', Eo: 70e9, nuo: 0.33, R: 0.004, area: 'sphere', pc: 0.3e9, cor: 0.35, mu: 0.35, feff: 0.9 },
+  s26u:     { label: 'ขอบเฟรม Armor Aluminum', kind: 'hertz', Eo: 70e9, nuo: 0.33, R: 0.003, area: 'sphere', pc: 0.3e9, cor: 0.35, mu: 0.35, feff: 0.9 },
+  fold8:    { label: 'ขอบเฟรม Armor Aluminum', kind: 'hertz', Eo: 70e9, nuo: 0.33, R: 0.003, area: 'sphere', pc: 0.3e9, cor: 0.33, mu: 0.35, feff: 0.85 },
+  ipduo:    { label: 'ขอบเฟรมไทเทเนียม', kind: 'hertz', Eo: 114e9, nuo: 0.34, R: 0.004, area: 'sphere', pc: 0.5e9, cor: 0.38, mu: 0.35, feff: 0.85 },
+  mbp:      { label: 'ขอบล่างตัวเครื่องอะลูมิเนียม', kind: 'hertz', Eo: 70e9, nuo: 0.33, R: 0.007, area: 'sphere', pc: 0.12e9, cor: 0.20, mu: 0.50, feff: 0.85, mtip: 0.3, ks: 2e6 },
+  mba:      { label: 'ขอบล่างตัวเครื่องอะลูมิเนียม', kind: 'hertz', Eo: 70e9, nuo: 0.33, R: 0.007, area: 'sphere', pc: 0.12e9, cor: 0.20, mu: 0.50, feff: 0.85, mtip: 0.3, ks: 2e6 }
+};
+const FLOOR_FACE = { // strike faces that change what lands on the floor
+  'db-rubber': { label: 'หัวหุ้มยาง', kind: 'hertz', Eo: 0.2e9, nuo: 0.45, R: 0.05, area: 'sphere', pc: Infinity, cor: 0.55, mu: 0.80, feff: 0.95 }
+};
+const FLOOR_NEXT = { chair: { label: 'ฐานอะลูมิเนียม (ล้อหักแล้ว)', kind: 'hertz', Eo: 70e9, nuo: 0.33, R: 0.006, area: 'sphere', pc: 0.54e9, cor: 0.30, mu: 0.40, feff: 0.6, mtip: 0.4, ks: 3e5 } };
+function floorSpecFor(def, face, st) {
+  if (st && st.casterBroken && FLOOR_NEXT[def.id]) return FLOOR_NEXT[def.id];
+  return (face && FLOOR_FACE[face.id]) || FLOOR_SPECS[def.id];
+}
 const NEXT = {
   'chair-base': { id: 'chair-base', label: 'ฐานอะลูมิเนียม (ล้อหักแล้ว)', kind: 'hertz', Eo: 70e9, nuo: 0.33, R: 0.006, area: 'sphere', pc: 540e6, hard: true, gap: 0.015, mat: 'อะลูมิเนียม', mtip: 0.4, ks: 3e5 }
 };
@@ -117,4 +154,4 @@ const EN12600 = { id: 'en12600', label: 'ตุ้มยาง EN 12600', kind: 
 // Human limits
 const HUMAN = { vLimb: 14, E: 150, mArm: 3, Fmax: 450 };
 function vMaxFor(m, face) { return Math.min(25, (face && face.vMult || 1) * Math.min(HUMAN.vLimb, Math.sqrt(2 * HUMAN.E / (m + HUMAN.mArm)))); }
-if (typeof module !== 'undefined') module.exports = { OBJECTS, NEXT, EN12600, HUMAN, vMaxFor };
+if (typeof module !== 'undefined') module.exports = { FLOOR_SPECS, floorSpecFor, OBJECTS, NEXT, EN12600, HUMAN, vMaxFor };

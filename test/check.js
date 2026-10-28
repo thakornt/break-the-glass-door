@@ -18,10 +18,22 @@ const checks = [
   ['Paper stacks (500-5000 sheets) do not break tempered 10 mm', () => Math.max(...paper.faces.map(f => rate(f.mass * f.feff, O.vMaxFor(f.mass, f), f, 'tempered', 0.010, 30))), p => p < 0.05],
   ['Solid teak corner at full swing can break tempered 10 mm, not always', () => rate(teak.mass * teak.feff, O.vMaxFor(teak.mass), teakF, 'tempered', 0.010, 100), p => p > 0.03 && p < 0.7],
 ];
+// Floor impacts must never add energy, and friction may only slow the slide, never reverse it
+checks.push(['Floor impacts never gain energy and friction never reverses the slide', () => {
+  let bad = 0;
+  for (const o of O.OBJECTS) for (const f of o.faces) {
+    const m = o.variants ? o.variants[0].mass : (f.mass ?? o.mass);
+    for (const vn of [0.5, 2, 5, 10]) {
+      const r = C.simulateFloorImpact({ m, vn, vt: 3, fl: O.floorSpecFor(o, f, {}), floorSt: {}, st: {}, wearSpec: null, dry: true });
+      if (0.5 * m * (r.vnOut ** 2 + r.vtOut ** 2) > 0.5 * m * (vn * vn + 9) + 1e-9 || r.vtOut < 0 || r.vtOut > 3) bad++;
+    }
+  }
+  return bad;
+}, n => n === 0]);
 let fail = 0;
 for (const [name, run, ok] of checks) {
   const p = run(); const pass = ok(p);
-  console.log(`${pass ? 'PASS' : 'FAIL'}  ${name}  (break rate ${(p * 100).toFixed(0)}%)`);
+  console.log(`${pass ? 'PASS' : 'FAIL'}  ${name}  (${name.startsWith('Floor') ? 'violations ' + p : 'break rate ' + (p * 100).toFixed(0) + '%'})`);
   if (!pass) fail++;
 }
 process.exit(fail ? 1 : 0);

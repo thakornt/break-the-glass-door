@@ -29,7 +29,7 @@ function plateProps(t) {
 function phi2(u, v) { return Math.max(0.04, Math.sin(Math.PI * u) ** 2 * Math.sin(Math.PI * v) ** 2); }
 function edgeDist(u, v) { return Math.min(u * PANEL.a, (1 - u) * PANEL.a, v * PANEL.b, (1 - v) * PANEL.b); }
 function sigmaCeff(sc, d) { return sc * (0.7 + 0.3 * Math.min(1, d / 0.08)); } // edge weakening (assumption)
-function hertzK(E2, nu2, R) { const Es = 1 / ((1 - G.nu ** 2) / G.E + (1 - nu2 ** 2) / E2); return 4 / 3 * Es * Math.sqrt(R); }
+function hertzK(E2, nu2, R, E1 = G.E, nu1 = G.nu) { const Es = 1 / ((1 - nu1 ** 2) / E1 + (1 - nu2 ** 2) / E2); return 4 / 3 * Es * Math.sqrt(R); }
 
 function randn() { let u = 0, v = 0; while (!u) u = Math.random(); v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
 function sampleGlassStrength(type) {
@@ -49,7 +49,7 @@ function localSf0(hid, u, v) {
   return hid.cells[k];
 }
 // Build a contact law from spec + object strike state
-function makeLaw(spec, st) {
+function makeLaw(spec, st, surf) {
   const L = Object.assign({}, spec);
   const crushPrev = st ? st.crush || 0 : 0;
   L.crushPrev = crushPrev;
@@ -57,7 +57,7 @@ function makeLaw(spec, st) {
     let R = L.R;
     if (L.area === 'corner') R = Math.max(R, Math.sqrt((L.A0 + L.g * crushPrev ** 2) / Math.PI));
     if (L.area === 'sphere') R = R + crushPrev * 0.5;
-    L.Reff = R; L.K = hertzK(L.Eo, L.nuo, R); L.n = 1.5;
+    L.Reff = R; L.K = surf ? hertzK(L.Eo, L.nuo, R, surf.E, surf.nu) : hertzK(L.Eo, L.nuo, R); L.n = 1.5;
   } else { L.n = 1; L.Reff = L.rFixed || 0.05; }
   return L;
 }
@@ -266,6 +266,71 @@ function simulateImpact(p) {
   return res;
 }
 
+
+// ===== Floor impact (rigid ceramic-tile floor on a concrete slab) =====
+// The object's underside (spec.floor) meets a half-space. Contact force, crushing and
+// breakage come from the same contact law as the glass hit; how much bounce is left
+// comes from the material's coefficient of restitution minus the energy the crush
+// absorbed. Friction during the hit is an impulse: it can take away at most
+// mu * (normal impulse) of the sliding speed, and never reverses it.
+const FLOOR = { E: 30e9, nu: 0.2, label: 'พื้นกระเบื้องบนพื้นคอนกรีต' };
+function simulateFloorImpact(p) {
+  // p = { m, vn (>0 downward speed), vt (signed horizontal speed), fl (floor contact spec),
+  //       floorSt (crush state of the underside), st (object state for wear), wearSpec }
+  const fl = p.fl, m = p.m, me = m * (fl.feff ?? 0.9);
+  const law = makeLaw(fl, p.floorSt, FLOOR);
+  const ks = fl.ks || 0, mtip = ks ? Math.min(fl.mtip || 0.3, me * 0.5) : 0, mb = me - mtip;
+  const csd = ks ? 2 * 0.08 * Math.sqrt(ks * mtip) : 0;
+  let x = 0, vx = p.vn, xb = 0, vb = p.vn, dp = 0, Fmax = 0, Eabs = 0, broke = false, dmg = null, t = 0, on = false, tc = 0;
+  const dt = me < 1 ? 2e-7 : 1e-6;
+  for (let i = 0; i < 400000; i++) {
+    let F = 0;
+    const d = x;
+    if (!broke && d > dp) {
+      const de = d - dp;
+      const Fel = law.K * Math.pow(de, law.n);
+      F = Fel;
+      if (law.pc < Infinity) {
+        const A = areaOf(law, law.crushPrev + d), Fc = law.pc * A;
+        if (Fel > Fc) { F = Fc; const ndp = d - Math.pow(Fc / law.K, 1 / law.n); if (ndp > dp) { Eabs += F * (ndp - dp); dp = ndp; } }
+      }
+      if (fl.damageF && F > fl.damageF && !dmg) dmg = fl.damageLabel || 'เสียหาย';
+      if (fl.breakF && F > fl.breakF) { F = fl.breakF; broke = true; Eabs += 0.5 * F * de; }
+    }
+    if (F > 0) { on = true; tc += dt; }
+    if (F > Fmax) Fmax = F;
+    if (ks) { const Fs = ks * (xb - x) + csd * (vb - vx); vx += (Fs - F) / mtip * dt; vb += -Fs / mb * dt; x += vx * dt; xb += vb * dt; }
+    else { vx += -F / me * dt; x += vx * dt; }
+    t += dt;
+    if (broke) break;
+    if (on && F === 0 && vx < 0 && (!ks || vb < 0)) break;
+    if (!on && t > 0.02) break;
+  }
+  const KE = 0.5 * m * p.vn * p.vn;
+  const cor = fl.cor ?? 0.3;
+  // cor covers the usual small losses (sound, floor and material damping); crushing is extra
+  const KEout = broke ? 0 : cor * cor * Math.max(0, KE - Eabs);
+  const vnOut = Math.sqrt(2 * KEout / m);
+  const Jn = m * (p.vn + vnOut);                 // normal impulse from the floor
+  const dvt = Math.min(Math.abs(p.vt), (fl.mu ?? 0.4) * Jn / m);
+  const vtOut = p.vt - Math.sign(p.vt) * dvt;
+  const res = { Fmax, Eabs, KE, KEout, vnOut, vtIn: p.vt, vtOut, cor, mu: fl.mu ?? 0.4, broke, objDamaged: dmg, contactTime: tc, crushAdd: dp };
+  if (!p.dry) {
+    p.floorSt.crush = (p.floorSt.crush || 0) + dp;
+    const ws = p.wearSpec;
+    if (ws && ws.wreckE && p.st) {
+      const work = (Eabs + 0.4 * Math.max(0, KE - KEout - Eabs)) * Math.exp(0.2 * randn());
+      const st = p.st;
+      st.wear = Math.min(1, (st.wear || 0) + work / ws.wreckE);
+      res.wear = st.wear; res.wearAdd = work / ws.wreckE;
+      const stg = (ws.stages || []).filter(s => st.wear >= s[0]).pop();
+      if (stg) { st.damaged = stg[1]; res.objDamaged = stg[1]; }
+      if (st.wear >= 1) st.wrecked = true;
+    } else if (dmg && p.st) p.st.damaged = dmg;
+  }
+  return res;
+}
+
 // Probability that the same impact breaks the glass, given glass survived all history
 function flawRatioFor(fl, sc, tempered, t) {
   const dc = 0.21 * t;
@@ -297,4 +362,4 @@ function predictBreak(p, history, N = 4000) {
   return { p: kept ? broke / kept : null, pFresh: fresh / freshN, kept, sameCount: same.length, sig: r0.sigMax, F: r0.Fmax };
 }
 
-if (typeof module !== 'undefined') module.exports = { cellKey, G, PANEL, plateProps, simulateImpact, sampleGlassStrength, predictBreak, flawRatioFor, hertzK, edgeDist, solveCone };
+if (typeof module !== 'undefined') module.exports = { simulateFloorImpact, FLOOR, cellKey, G, PANEL, plateProps, simulateImpact, sampleGlassStrength, predictBreak, flawRatioFor, hertzK, edgeDist, solveCone };
